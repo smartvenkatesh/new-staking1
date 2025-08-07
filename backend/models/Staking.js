@@ -15,10 +15,13 @@ const stakingSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   network: { type: String, enum: ["ETH", "AVAX"], required: true },
   stakeDate: { type: Date, default: Date.now },
-  duration: { type: Number, required: true },
+  duration: Number,
+  apr:Number,
   type: { type: String, required: true },
   status: { type: String, default: "active" },
   rewards: { type: Number, default: 0 },
+  update: { type:Number, default:1}
 });
 
 export default mongoose.model("Staking", stakingSchema);
+

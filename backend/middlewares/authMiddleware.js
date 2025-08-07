@@ -4,16 +4,14 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const SECRET_KEY = process.env.SECRET_KEYS.split(",");
-console.log("SECRET_KEY", SECRET_KEY);
 
 export function authenticate(req, res, next) {
   const token = req.headers.authorization?.split(" ")[1];
-  console.log('token',token);
   
   if (!token) return res.status(401).json({ message: "Unauthorized" });
 
   try {
-    const decodedHeader = jwt.decode(token, { complete: true });
+    const decodedHeader = jwt.decode(token,{complete:true});
 
     const keyId = decodedHeader?.header?.kid;
 
@@ -22,10 +20,8 @@ export function authenticate(req, res, next) {
     }
 
     const secret = SECRET_KEY[keyId];
-    console.log("secret", secret);
 
     const user = jwt.verify(token, secret);
-    console.log("user", user);
 
     req.user = user;
     next();
