@@ -1,34 +1,87 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import { Button } from "react-bootstrap";
+import decodeToken from "../utils/decode";
 
 const PORT = "http://localhost:8080/staking";
 
 const Stake = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
+  const [userId,setUserId] = useState("")
   const [stakeAmount, setStakeAmount] = useState("");
   const [duration, setDuration] = useState("");
   const [stakeType, setStakeType] = useState("fixed");
+  const [stakeConfig,setStakeConfig] = useState([])
+  const [apr,setApr] = useState("")
+
+  const getConfig = () => {
+    axios
+      .get("http://localhost:8080/staking/getConfig", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      })
+      .then((res) => {
+        const allConfigs = res.data;
+        
+        const matchedConfig = allConfigs.find(
+          (cfg) =>
+            cfg.currencySymbol === state.type && cfg.type === stakeType
+        );
+        if (matchedConfig) {
+          setStakeConfig(matchedConfig);
+          setApr(matchedConfig.apr)
+          if(duration === 4 && matchedConfig.type === "fixed"){
+            setApr(matchedConfig.apr)
+            
+          }else if(duration === 2 && matchedConfig.type === "fixed"){
+          setApr(matchedConfig.apr/duration)
+
+          }
+            
+        } else {
+          setStakeConfig([]);
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching config", err);
+      });
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    console.log('token',token);
+    
+    const decoder = decodeToken(token)._id
+    console.log('decoder',decoder);
+    
+    if (decoder) {
+      setUserId(decoder);    
+    }
+  }, []);
+
+  useEffect(()=>{
+    getConfig()
+  },[stakeType,duration])
 
   const handleStakeSubmit = async () => {
-    if (!stakeAmount || !duration) {
+    if ((!stakeAmount) || (!duration)) {
       toast.error("Please enter stake amount and duration");
       return;
     }
 
     try {
-      await axios.post(`${PORT}/stake` ,{headers:
-        {Authorization:`Bearer ${localStorage.getItem("token")}`}}, {
-        userId: localStorage.getItem("userId"),
+      await axios.post(`${PORT}/stake`, {
+        userId,
         walletId: state.walletId,
         amount: stakeAmount,
         duration,
         network: state.type,
+        apr,
         stakeType,
-      });
+      },{headers:
+        {Authorization:`Bearer ${localStorage.getItem("token")}`}});
 
       toast.success("Staking successful!");
       setDuration("");
@@ -60,7 +113,37 @@ const Stake = () => {
           <strong>Balance:</strong> {state.amount} USD
         </p>
 
-        <div>
+        <select value={stakeType} onChange={(e) => setStakeType(e.target.value)}>
+         <option value="fixed">Fixed</option>
+         <option value="flexible">Flexible</option>
+        </select>
+
+        <p><strong>APR</strong> : {apr}%</p>
+
+   {stakeConfig?.duration && (
+     <div>
+       <label>Duration (days):</label>
+        <div style={{ display: "flex",justifyContent:"center", gap: "10px" }}>
+        {stakeConfig.duration.map((d, idx) => (
+        <button
+          key={idx}
+          onClick={() => setDuration(d)}
+          style={{
+            padding: "8px 12px",
+            backgroundColor: duration === d ? "green" : "#e0e0e0",
+            color: duration === d ? "white" : "black",
+            border: "none",
+            borderRadius: "15px",
+          }}
+        >
+          {d}
+        </button>
+       ))}
+      </div>
+     </div>
+    )}
+
+          <div>
           <label>Amount: </label>
           <input
             type="number"
@@ -69,27 +152,7 @@ const Stake = () => {
             placeholder="Enter amount"
           />
         </div>
-
-        <div>
-          <label>Duration (days): </label>
-          <input
-            type="number"
-            value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-            placeholder="Enter duration"
-          />
-        </div>
-
-        <div>
-          <label>Stake Type: </label>
-          <select
-            value={stakeType}
-            onChange={(e) => setStakeType(e.target.value)}
-          >
-            <option value="fixed">Fixed</option>
-            <option value="flexible">Flexible</option>
-          </select>
-        </div>
+        
 
         <button
           onClick={handleStakeSubmit}

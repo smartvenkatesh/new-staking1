@@ -4,6 +4,7 @@ import { Button } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import Modal from "react-bootstrap/Modal";
 import { toast, ToastContainer } from "react-toastify";
+import decodeToken from "../utils/decode";
 
 const Withdraw = () => {
   const navigate = useNavigate();
@@ -36,9 +37,14 @@ const Withdraw = () => {
       .catch((err) => alert(err.response.data.message));
   };
   useEffect(() => {
-    const stateUserId = localStorage.getItem("userId");
-    if (stateUserId) {
-      setWithdrawId(stateUserId);
+    const token = localStorage.getItem("token");
+    console.log('token',token);
+    
+    const decoder = decodeToken(token)._id
+    console.log('decoder',decoder);
+    
+    if (decoder) {
+      setWithdrawId(decoder);
     }
   }, []);
 
@@ -53,8 +59,8 @@ const Withdraw = () => {
 
   const withdrawAmount = () => {
     axios
-      .post("http://localhost:8080/staking/withdraw", {headers:
-        {Authorization:`Bearer ${localStorage.getItem("token")}`}},{ account, stake })
+      .post("http://localhost:8080/staking/withdraw",{ account, stake }, {headers:
+        {Authorization:`Bearer ${localStorage.getItem("token")}`}})
       .then((res) => {
         toast.success(res.data.message);
         handleClose();

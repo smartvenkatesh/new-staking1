@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import "../App.css";
 import { Button } from "react-bootstrap";
 import { toast, ToastContainer } from "react-toastify";
+import decodeToken from "../utils/decode";
 
 const Deposit = () => {
   const navigate = useNavigate();
@@ -12,18 +13,26 @@ const Deposit = () => {
   const [account, setAccount] = useState("");
   const [dbAddresses, setDbAddresses] = useState([]);
   const [amount, setAmount] = useState(0);
+
   const getAddress = () => {
+    
     axios
       .get(`http://localhost:8080/staking/getAddress/${depositId}`,{headers:
         {Authorization:`Bearer ${localStorage.getItem("token")}`}})
       .then((res) => {
         setDbAddresses(res.data);
+        console.log('res.data',res.data);
       });
   };
-  useEffect(() => {
-    const stateUserId = localStorage.getItem("userId");
-    if (stateUserId) {
-      setDepositId(stateUserId);
+ useEffect(() => {
+    const token = localStorage.getItem("token");
+    console.log('token',token);
+    
+    const decoder = decodeToken(token)._id
+    console.log('decoder',decoder);
+    
+    if (decoder) {
+      setDepositId(decoder);    
     }
   }, []);
 
@@ -35,7 +44,7 @@ const Deposit = () => {
 
   const submit = () => {
     axios
-      .post(`http://localhost:8080/staking/addAmount/${account}/${amount}`,{headers:
+      .post("http://localhost:8080/staking/addAmount",{account,amount},{headers:
         {Authorization:`Bearer ${localStorage.getItem("token")}`}})
       .then((res) => console.log(res.data.message));
     setAccount("");

@@ -46,14 +46,13 @@ const Create = () => {
       console.log("Generated Account:", newAccount);
       setAddress(newAccount);
 
-      await axios.post(`http://localhost:8080/staking/addAddress`,{headers:
-        {Authorization:`Bearer ${localStorage.getItem("token")}`}}, {
+      await axios.post("http://localhost:8080/staking/addAddress", {
         userId: depositId,
         address: newAccount.address,
         currencyName: network,
         privateKey: newAccount.privateKey,
-      });
-
+      },{headers:
+        {Authorization:`Bearer ${localStorage.getItem("token")}`}});
       setNetwork("");
       alert(`Address created successfully`);
     } catch (err) {

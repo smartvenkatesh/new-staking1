@@ -15,6 +15,12 @@ const Admin = () => {
   const [currencyName, setCurrencyName] = useState("");
   const [currencySymbol, setCurrencySymbol] = useState("");
   const [usdValue, setUsdValue] = useState("");
+  const [show1,setShow1] = useState("")
+  const [network,setNetwork] = useState("")
+  const [dbNetwork,setDbNetwork] = useState([])
+  const [apr,setApr] = useState("")
+  const [duration,setDuration] = useState("")
+  const [type,setType] = useState("")
 
   const handleClose = () => {
     setShow(false);
@@ -22,7 +28,23 @@ const Admin = () => {
     setCurrencySymbol("");
     setUsdValue("");
   };
+  const handleClose1=()=>{
+    setNetwork("")
+    setApr("")
+    setDuration("")
+    setType("")
+    setShow1(false)
+  }
   const handleShow = () => setShow(true);
+  const handleShow1 = () => setShow1(true);
+
+  const getCurrency = () => {
+    axios.get(`http://localhost:8080/staking/getCurrency`,{headers:
+      {Authorization:`Bearer ${localStorage.getItem("token")}`}}).then((res) => {
+      setDbNetwork(res.data);
+      console.log(res.data);
+    });
+  };
 
   const handleSave = async () => {
     try {
@@ -37,6 +59,29 @@ const Admin = () => {
       );
       toast.success(response.data.message);
       handleClose();
+    } catch (error) {
+      if (error.response && error.response.data.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("Something went wrong");
+      }
+    }
+  };
+
+  const handleConfig = async () => {
+    try {
+      const response = await axios.post(
+        "http://localhost:8080/staking/createConfig",
+        {
+          network,
+          apr,
+          duration,
+          type
+        },{headers:
+          {Authorization:`Bearer ${localStorage.getItem("token")}`}}
+      );
+      toast.success(response.data.message);
+      handleClose1();
     } catch (error) {
       if (error.response && error.response.data.message) {
         toast.error(error.response.data.message);
@@ -61,6 +106,7 @@ const Admin = () => {
 
   useEffect(() => {
     getWallets();
+    getCurrency()
     if (activeTab === "stake") {
       getStakeDetails();
     }
@@ -110,6 +156,12 @@ const Admin = () => {
         </button>
         )}
 
+        {activeTab === "home" &&(
+          <button className="btn btn-warning" onClick={handleShow1}>
+          Config
+        </button>
+        )}
+
         {activeTab === "home" && (
           <button className="btn btn-success" onClick={getStakeDetails}>
             Staking Details
@@ -141,7 +193,7 @@ const Admin = () => {
           <Modal.Title>Enter New Currency</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <label>Currency Name:</label>
+        <label>Currency Name:</label>
           <input
             type="text"
             className="form-control mb-2"
@@ -174,6 +226,53 @@ const Admin = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      <Modal show={show1} onHide={handleClose1}>
+      <Modal.Header closeButton>
+        <Modal.Title>Enter New Currency Config</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <select className="w-100 text-center bg-light p-2 mb-2" value={type} onChange={(e) => setType(e.target.value)}>
+          <option value="">Stake Type</option>
+          <option value="fixed">Fixed</option>
+          <option value="flexible">Flexible</option>
+        </select>
+
+        <select className="w-100 text-center bg-light p-2 mb-2" value={network} onChange={(e) => setNetwork(e.target.value)}>
+          <option value="">Currency Symbol</option>
+          {dbNetwork.map((net, idx) => (
+            <option key={idx} value={net.currencyName}>
+              {net.currencyName}
+            </option>
+          ))}
+        </select>
+
+        <label>Duration</label>
+        <input
+          type="text"
+          className="form-control mb-2"
+          placeholder="Duration"
+          value={duration}
+          onChange={(e) => setDuration(e.target.value)}
+        />
+
+        <label>APR (%)</label>
+        <input
+          type="number"
+          className="form-control"
+          value={apr}
+          onChange={(e) => setApr(e.target.value)}
+        />
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={handleClose1}>
+          Close
+        </Button>
+        <Button variant="primary" onClick={handleConfig}>
+          Save Changes
+        </Button>
+      </Modal.Footer>
+    </Modal>
 
       {activeTab === "home" && (
         <div className="admin-table-wrapper">

@@ -37,7 +37,7 @@ const Home = () => {
     const type = toCurrency.toLowerCase();
     console.log("1");
     
-    setOpen(false);
+    setOpen(true);
     console.log("2");
     try {
       const res = await axios.get(`${PORT}/address/${userId}`,{headers:
