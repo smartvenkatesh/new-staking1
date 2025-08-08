@@ -7,11 +7,12 @@ const SECRET_KEY = process.env.SECRET_KEYS.split(",");
 
 export function authenticate(req, res, next) {
   const token = req.headers.authorization?.split(" ")[1];
-  
+  console.log('token', token);
+
   if (!token) return res.status(401).json({ message: "Unauthorized" });
 
   try {
-    const decodedHeader = jwt.decode(token,{complete:true});
+    const decodedHeader = jwt.decode(token, { complete: true });
 
     const keyId = decodedHeader?.header?.kid;
 
