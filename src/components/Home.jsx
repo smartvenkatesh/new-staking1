@@ -271,12 +271,15 @@ const Home = () => {
           <thead>
             <tr>
               <th>No</th>
+              <th>Network</th>
+              <th>Logo</th>
               <th>Stake Address</th>
               <th>Stake Amount</th>
               <th>Remaining Balance</th>
               <th>Stake Type</th>
               <th>Status</th>
               <th>Rewards</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -288,6 +291,19 @@ const Home = () => {
               return (
                 <tr key={index}>
                   <td>{index + 1}</td>
+                  <td>{stake.stakeDetails.currencyType}</td>
+                  <td className="text-center">
+                  <img
+                    src={
+                      stake.stakeDetails.currencyType === "ETH"
+                        ? "https://assets.coingecko.com/coins/images/279/large/ethereum.png"
+                        : "https://assets.coingecko.com/coins/images/12559/large/coin-round-red.png"
+                    }
+                    alt={stake.stakeDetails.currencyType}
+                    width="30"
+                    height="30"
+                  />
+                </td>
                   <td>{stake.stakeDetails.address}</td>
                   <td>{stake.amount.toFixed(2)}</td>
                   <td>{stake.stakeDetails.amount.toFixed(2)}</td>
@@ -303,7 +319,10 @@ const Home = () => {
                   >
                     {stake.status}
                   </td>
-                  <td>{stake.rewards.toFixed(2)}</td>
+                  <td>{stake.rewards.toFixed(3)}</td>
+                  <td><Button
+                  onClick={() => navigate("/staking/radeem",{state:stake._id})} 
+                  variant="success">Radeem</Button></td>
                 </tr>
               );
             })}

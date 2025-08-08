@@ -10,10 +10,9 @@ import Stake from "./components/Stake";
 import Withdraw from "./components/Withdraw";
 import Create from "./components/Create";
 import LoginVerifyOTP from "./components/LoginVerifyOTP"
+import Radeem from "./components/Radeem";
 
 const App = () => {
-  const getId = localStorage.getItem("userId")
-  console.log("from app",getId);
   
   return (
     <Routes>
@@ -27,6 +26,7 @@ const App = () => {
       <Route path="/admin" element={<Admin />} />
       <Route path="/staking/stake" element={<Stake />} />
       <Route path="/staking/withdraw" element={<Withdraw />} />
+      <Route path="/staking/radeem" element={<Radeem/>}/>
     </Routes>
   );
 };
