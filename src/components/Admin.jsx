@@ -15,12 +15,12 @@ const Admin = () => {
   const [currencyName, setCurrencyName] = useState("");
   const [currencySymbol, setCurrencySymbol] = useState("");
   const [usdValue, setUsdValue] = useState("");
-  const [show1,setShow1] = useState("")
-  const [network,setNetwork] = useState("")
-  const [dbNetwork,setDbNetwork] = useState([])
-  const [apr,setApr] = useState("")
-  const [duration,setDuration] = useState("")
-  const [type,setType] = useState("")
+  const [show1, setShow1] = useState("")
+  const [network, setNetwork] = useState("")
+  const [dbNetwork, setDbNetwork] = useState([])
+  const [apr, setApr] = useState("")
+  const [duration, setDuration] = useState("")
+  const [type, setType] = useState("")
 
   const handleClose = () => {
     setShow(false);
@@ -28,7 +28,7 @@ const Admin = () => {
     setCurrencySymbol("");
     setUsdValue("");
   };
-  const handleClose1=()=>{
+  const handleClose1 = () => {
     setNetwork("")
     setApr("")
     setDuration("")
@@ -39,8 +39,10 @@ const Admin = () => {
   const handleShow1 = () => setShow1(true);
 
   const getCurrency = () => {
-    axios.get(`http://localhost:8080/staking/getCurrency`,{headers:
-      {Authorization:`Bearer ${localStorage.getItem("token")}`}}).then((res) => {
+    axios.get(`http://localhost:8080/staking/getCurrency`, {
+      headers:
+        { Authorization: `Bearer ${localStorage.getItem("token")}` }
+    }).then((res) => {
       setDbNetwork(res.data);
       console.log(res.data);
     });
@@ -49,13 +51,15 @@ const Admin = () => {
   const handleSave = async () => {
     try {
       const response = await axios.post(
-        "http://localhost:8080/staking/addCurrency",{headers:
-          {Authorization:`Bearer ${localStorage.getItem("token")}`}},
+        "http://localhost:8080/staking/addCurrency",
         {
           currencyName,
           currencySymbol,
           usdValue,
-        }
+        }, {
+        headers:
+          { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      }
       );
       toast.success(response.data.message);
       handleClose();
@@ -77,8 +81,10 @@ const Admin = () => {
           apr,
           duration,
           type
-        },{headers:
-          {Authorization:`Bearer ${localStorage.getItem("token")}`}}
+        }, {
+          headers:
+            { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      }
       );
       toast.success(response.data.message);
       handleClose1();
@@ -93,8 +99,10 @@ const Admin = () => {
 
   const getWallets = () => {
     axios
-      .get("http://localhost:8080/staking/all-wallets",{headers:
-        {Authorization:`Bearer ${localStorage.getItem("token")}`}})
+      .get("http://localhost:8080/staking/all-wallets", {
+        headers:
+          { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      })
       .then((res) => {
         setWallets(res.data);
         console.log(res.data);
@@ -112,20 +120,24 @@ const Admin = () => {
     }
   }, [select]);
 
-  
+
   const getStakeDetails = () => {
     setActiveTab("stake");
     if (select === "fixed" || select === "flexible") {
       axios
-        .get(`http://localhost:8080/staking/stakes/${select}`,{headers:
-          {Authorization:`Bearer ${localStorage.getItem("token")}`}})
+        .get(`http://localhost:8080/staking/stakes/${select}`, {
+          headers:
+            { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        })
         .then((res) => {
           setStakeDetails(res.data);
           console.log("res.data", res.data);
         });
     } else if (!select) {
-      axios.get("http://localhost:8080/staking/stakes",{headers:
-        {Authorization:`Bearer ${localStorage.getItem("token")}`}}).then((res) => {
+      axios.get("http://localhost:8080/staking/stakes", {
+        headers:
+          { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      }).then((res) => {
         setStakeDetails(res.data);
         console.log("res.data", res.data);
       });
@@ -150,16 +162,16 @@ const Admin = () => {
           Staking <span>Admin Panel</span>
         </h1>
 
-        {activeTab === "home" &&(
+        {activeTab === "home" && (
           <button className="btn btn-success" onClick={handleShow}>
-          Add Currency
-        </button>
+            Add Currency
+          </button>
         )}
 
-        {activeTab === "home" &&(
+        {activeTab === "home" && (
           <button className="btn btn-warning" onClick={handleShow1}>
-          Config
-        </button>
+            Config
+          </button>
         )}
 
         {activeTab === "home" && (
@@ -193,7 +205,7 @@ const Admin = () => {
           <Modal.Title>Enter New Currency</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-        <label>Currency Name:</label>
+          <label>Currency Name:</label>
           <input
             type="text"
             className="form-control mb-2"
@@ -228,51 +240,51 @@ const Admin = () => {
       </Modal>
 
       <Modal show={show1} onHide={handleClose1}>
-      <Modal.Header closeButton>
-        <Modal.Title>Enter New Currency Config</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <select className="w-100 text-center bg-light p-2 mb-2" value={type} onChange={(e) => setType(e.target.value)}>
-          <option value="">Stake Type</option>
-          <option value="fixed">Fixed</option>
-          <option value="flexible">Flexible</option>
-        </select>
+        <Modal.Header closeButton>
+          <Modal.Title>Enter New Currency Config</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <select className="w-100 text-center bg-light p-2 mb-2" value={type} onChange={(e) => setType(e.target.value)}>
+            <option value="">Stake Type</option>
+            <option value="fixed">Fixed</option>
+            <option value="flexible">Flexible</option>
+          </select>
 
-        <select className="w-100 text-center bg-light p-2 mb-2" value={network} onChange={(e) => setNetwork(e.target.value)}>
-          <option value="">Currency Symbol</option>
-          {dbNetwork.map((net, idx) => (
-            <option key={idx} value={net.currencyName}>
-              {net.currencyName}
-            </option>
-          ))}
-        </select>
+          <select className="w-100 text-center bg-light p-2 mb-2" value={network} onChange={(e) => setNetwork(e.target.value)}>
+            <option value="">Currency Symbol</option>
+            {dbNetwork.map((net, idx) => (
+              <option key={idx} value={net.currencyName}>
+                {net.currencyName}
+              </option>
+            ))}
+          </select>
 
-        <label>Duration</label>
-        <input
-          type="text"
-          className="form-control mb-2"
-          placeholder="Duration"
-          value={duration}
-          onChange={(e) => setDuration(e.target.value)}
-        />
+          <label>Duration</label>
+          <input
+            type="text"
+            className="form-control mb-2"
+            placeholder="Duration"
+            value={duration}
+            onChange={(e) => setDuration(e.target.value)}
+          />
 
-        <label>APR (%)</label>
-        <input
-          type="number"
-          className="form-control"
-          value={apr}
-          onChange={(e) => setApr(e.target.value)}
-        />
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={handleClose1}>
-          Close
-        </Button>
-        <Button variant="primary" onClick={handleConfig}>
-          Save Changes
-        </Button>
-      </Modal.Footer>
-    </Modal>
+          <label>APR (%)</label>
+          <input
+            type="number"
+            className="form-control"
+            value={apr}
+            onChange={(e) => setApr(e.target.value)}
+          />
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleClose1}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={handleConfig}>
+            Save Changes
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {activeTab === "home" && (
         <div className="admin-table-wrapper">
@@ -284,7 +296,7 @@ const Admin = () => {
                 <th>Network</th>
                 <th>Logo</th>
                 <th>Wallet Address</th>
-                <th>Balance</th>  
+                <th>Balance</th>
               </tr>
             </thead>
             <tbody>
@@ -365,8 +377,8 @@ const Admin = () => {
                         stake.status === "completed"
                           ? "bg-success text-light"
                           : stake.status === "cancelled"
-                          ? "bg-danger text-light"
-                          : "bg-warning"
+                            ? "bg-danger text-light"
+                            : "bg-warning"
                       }
                     >
                       {stake.status}
