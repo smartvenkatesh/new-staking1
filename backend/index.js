@@ -7,14 +7,16 @@ import stackingRoutes from "./routes/stackingRoutes.js";
 dotenv.config();
 const app = express();
 
-const allowedOrigins = ["http://localhost:3000", "http://localhost:3001"];
+// const allowedOrigins = ["http://localhost:3000", "http://localhost:3001"];
 
-app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-  })
-);
+// app.use(
+//   cors({
+//     origin: allowedOrigins,
+//     credentials: true,
+//   })
+// );
+
+app.use(cors())
 
 app.use(express.json());
 
