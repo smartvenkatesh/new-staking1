@@ -36,12 +36,14 @@ const Home = () => {
   const getWallets = async (toCurrency) => {
     const type = toCurrency.toLowerCase();
     console.log("1");
-    
-    setOpen(true);
+
+    setOpen(false);
     console.log("2");
     try {
-      const res = await axios.get(`${PORT}/address/${userId}`,{headers:
-        {Authorization:`Bearer ${localStorage.getItem("token")}`}});
+      const res = await axios.get(`${PORT}/address/${userId}`, {
+        headers:
+          { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      });
       const wallets = res.data;
       console.log("wallets", wallets);
 
@@ -69,13 +71,13 @@ const Home = () => {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    console.log('token',token);
-    
+    console.log('token', token);
+
     const decoder = decodeToken(token)._id
-    console.log('decoder',decoder);
-    
+    console.log('decoder', decoder);
+
     if (decoder) {
-      setUserId(decoder);    
+      setUserId(decoder);
     }
   }, []);
 
@@ -115,8 +117,10 @@ const Home = () => {
   const customerStakeDetails = () => {
     setActiveTab("stake");
     axios
-      .get(`http://localhost:8080/staking/customerStake/${userId}`,{headers:
-        {Authorization:`Bearer ${localStorage.getItem("token")}`}})
+      .get(`http://localhost:8080/staking/customerStake/${userId}`, {
+        headers:
+          { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      })
       .then((res) => {
         setStaking(res.data);
         console.log("res.data", res.data);
@@ -126,8 +130,10 @@ const Home = () => {
   const handleStakeHistory = () => {
     setActiveTab("history");
     axios
-      .get(`http://localhost:8080/staking/stakeHistory/${userId}`,{headers:
-        {Authorization:`Bearer ${localStorage.getItem("token")}`}})
+      .get(`http://localhost:8080/staking/stakeHistory/${userId}`, {
+        headers:
+          { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      })
       .then((res) => {
         setStakeHistory(res.data);
       });
@@ -257,8 +263,8 @@ const Home = () => {
                 <td>
                   {wallet.virtualMoneyInCrypto
                     ? wallet.virtualMoneyInCrypto.toFixed(8) +
-                      " " +
-                      wallet.currencyType
+                    " " +
+                    wallet.currencyType
                     : "0" + " " + wallet.currencyType}
                 </td>
               </tr>
@@ -293,17 +299,17 @@ const Home = () => {
                   <td>{index + 1}</td>
                   <td>{stake.stakeDetails.currencyType}</td>
                   <td className="text-center">
-                  <img
-                    src={
-                      stake.stakeDetails.currencyType === "ETH"
-                        ? "https://assets.coingecko.com/coins/images/279/large/ethereum.png"
-                        : "https://assets.coingecko.com/coins/images/12559/large/coin-round-red.png"
-                    }
-                    alt={stake.stakeDetails.currencyType}
-                    width="30"
-                    height="30"
-                  />
-                </td>
+                    <img
+                      src={
+                        stake.stakeDetails.currencyType === "ETH"
+                          ? "https://assets.coingecko.com/coins/images/279/large/ethereum.png"
+                          : "https://assets.coingecko.com/coins/images/12559/large/coin-round-red.png"
+                      }
+                      alt={stake.stakeDetails.currencyType}
+                      width="30"
+                      height="30"
+                    />
+                  </td>
                   <td>{stake.stakeDetails.address}</td>
                   <td>{stake.amount.toFixed(2)}</td>
                   <td>{stake.stakeDetails.amount.toFixed(2)}</td>
@@ -313,16 +319,16 @@ const Home = () => {
                       stake.status === "completed"
                         ? "bg-success text-light"
                         : stake.status === "cancelled"
-                        ? "bg-danger text-light"
-                        : "bg-warning"
+                          ? "bg-danger text-light"
+                          : "bg-warning"
                     }
                   >
                     {stake.status}
                   </td>
                   <td>{stake.rewards.toFixed(3)}</td>
                   <td><Button
-                  onClick={() => navigate("/staking/radeem",{state:stake._id})} 
-                  variant="success">Radeem</Button></td>
+                    onClick={() => navigate("/staking/radeem", { state: stake._id })}
+                    variant="success">Radeem</Button></td>
                 </tr>
               );
             })}

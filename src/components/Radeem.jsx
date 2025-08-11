@@ -1,126 +1,130 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { Button } from "react-bootstrap";
+import { Button, Modal } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
-import Modal from "react-bootstrap/Modal";
 import { toast, ToastContainer } from "react-toastify";
 import decodeToken from "../utils/decode";
+import "react-toastify/dist/ReactToastify.css";
+import "./Radeem.css";
 
 const Radeem = () => {
   const navigate = useNavigate();
-  const [account, setAccount] = useState("");
-  const [dbAddresses, setDbAddresses] = useState([]);
+  const location = useLocation();
+  const stakeId = location.state;
+
+  const [walletDetails, setWalletDetails] = useState(null);
   const [withdrawId, setWithdrawId] = useState("");
-  const [stake, setStake] = useState("");
   const [show, setShow] = useState(false);
-  const location = useLocation()
-  const stakeId = location.state
 
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
-  const getAddress = () => {
-    axios
-      .get(`http://localhost:8080/staking/radeem/${stakeId}`,{headers:
-        {Authorization:`Bearer ${localStorage.getItem("token")}`}})
-      .then((res) => {
-        setDbAddresses(res.data);
-        console.log(res.data);
-      });
+
+  // Fetch wallet details
+  const getAddress = async () => {
+    console.log("stakeId", stakeId);
+    try {
+      const res = await axios.get(
+        `http://localhost:8080/staking/radeem/${stakeId}`,
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }
+      );
+      if (res.data && res.data.length > 0) {
+        setWalletDetails(res.data[0]);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to fetch address");
+    }
   };
 
-  const getStakeAmount = () => {
-    axios
-      .get(`http://localhost:8080/staking/stakeAmount/${account}`,{headers:
-        {Authorization:`Bearer ${localStorage.getItem("token")}`}})
-      .then((res) => {
-        console.log("res.data", res.data);
-        setStake(res.data);
-      })
-      .catch((err) => alert(err.response.data.message));
-  };
+
+  // Get user ID from token
   useEffect(() => {
     const token = localStorage.getItem("token");
-    console.log('token',token);
-    
-    const decoder = decodeToken(token)._id
-    console.log('decoder',decoder);
-    
-    if (decoder) {
-      setWithdrawId(decoder);
+    if (token) {
+      const decoder = decodeToken(token)?._id;
+      if (decoder) setWithdrawId(decoder);
     }
   }, []);
 
+  // When stakeId changes, fetch wallet
   useEffect(() => {
     if (stakeId) {
       getAddress();
     }
-    if (account) {
-      getStakeAmount();
-    }
-  }, [withdrawId, account]);
+  }, [stakeId]);
 
-  const withdrawAmount = () => {
-    axios
-      .post("http://localhost:8080/staking/withdraw",{ account, stake }, {headers:
-        {Authorization:`Bearer ${localStorage.getItem("token")}`}})
-      .then((res) => {
-        toast.success(res.data.message);
-        handleClose();
-        setTimeout(() => navigate("/staking/home"), 3000);
-      })
-      .catch((err) => toast.error(err.response.data.message));
+
+  // Withdraw request
+  const withdrawAmount = async () => {
+    try {
+      const account = walletDetails.walletDetails.address;
+      await axios.post(
+        `http://localhost:8080/staking/withdraw/radeem/${stakeId}`,
+        { account },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }
+      );
+      toast.success("Withdrawal successful");
+      handleClose();
+      setTimeout(() => navigate("/staking/home"), 2000);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Withdrawal failed");
+    }
   };
+
   return (
     <div className="deposit-page-radeem">
-      <span>
-        Note : Withdraw your stake amount without during days or hours
-        completed,no rewards added your address
-      </span>
-      <div className="deposit-card">
-        <Button onClick={() => navigate("/staking/home")} className="home-btn">
-          Home
-        </Button>
-        <h1>Radeem</h1>
-        <div className="profile-head">
-          {dbAddresses.map((wallet, index) => (
-            <div key={index}>
-              <h1>Profile Details</h1>
-              <div className="profile-body">
-                <div className="tr">
-                  <h4 className="td">Address :</h4>
-                  <h4 className="td">Network :</h4>
-                  <h4 className="td">Stake Type : </h4>
-                  <h4 className="td">Stake Amount : </h4>
-                  <h4 className="td">Rewards : </h4>
-                </div>
-                <div className="tr">
-                  <h4 className="td">{wallet.walletDetails.address}</h4>
-                  <h4 className="td">{wallet.network}</h4>
-                  <h4 className="td">{wallet.type}</h4>
-                  <h4 className="td">{wallet.amount}</h4>
-                  <h4 className="td">{wallet.rewards}</h4>
-                </div>
-              </div>
-            </div>
-          ))}
+      <p className="note">
+        <strong>Note:</strong> If you withdraw before the staking period ends,
+        no rewards will be credited.
+      </p>
+
+      <div className="deposit-card-radeem">
+        <div className="header-actions">
+          <Button variant="success" onClick={() => navigate("/staking/home")}>
+            Home
+          </Button>
+          <h1>Redeem Stake</h1>
         </div>
-        {account && <p>Total Stake Amount : {stake}</p>}
-        <Button onClick={handleShow}>Withdraw</Button>
+
+        {walletDetails && (
+          <div className="profile-section">
+            <div className="profile-grid">
+              <div className="label">Address:</div>
+              <div className="value">{walletDetails.walletDetails.address}</div>
+              <div className="label">Network:</div>
+              <div className="value">{walletDetails.network}</div>
+              <div className="label">Stake Type:</div>
+              <div className="value">{walletDetails.type}</div>
+              <div className="label">Stake Amount:</div>
+              <div className="value">{walletDetails.amount}</div>
+              <div className="label">Rewards:</div>
+              <div className="value">{walletDetails.rewards}</div>
+            </div>
+          </div>
+        )}
+
+        <Button variant="danger" onClick={handleShow}>
+          Withdraw
+        </Button>
+
         <Modal className="text-center" show={show} onHide={handleClose}>
           <h1 className="pt-3">Withdraw</h1>
           <hr />
-          <Modal.Body>Are you sure withdraw stake amount</Modal.Body>
+          <Modal.Body>Are you sure you want to withdraw your stake?</Modal.Body>
           <Modal.Footer>
             <Button variant="success" onClick={withdrawAmount}>
-              yes
+              Yes
             </Button>
             <Button variant="danger" onClick={handleClose}>
-              no
+              No
             </Button>
           </Modal.Footer>
         </Modal>
       </div>
-      <ToastContainer />
+      <ToastContainer position="top-right" autoClose={2000} />
     </div>
   );
 };

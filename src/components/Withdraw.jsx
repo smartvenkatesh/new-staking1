@@ -18,8 +18,10 @@ const Withdraw = () => {
   const handleShow = () => setShow(true);
   const getAddress = () => {
     axios
-      .get(`http://localhost:8080/staking/getAddress/${withdrawId}`,{headers:
-        {Authorization:`Bearer ${localStorage.getItem("token")}`}})
+      .get(`http://localhost:8080/staking/getAddress/${withdrawId}`, {
+        headers:
+          { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      })
       .then((res) => {
         setDbAddresses(res.data);
         console.log(res.data);
@@ -28,8 +30,10 @@ const Withdraw = () => {
 
   const getStakeAmount = () => {
     axios
-      .get(`http://localhost:8080/staking/stakeAmount/${account}`,{headers:
-        {Authorization:`Bearer ${localStorage.getItem("token")}`}})
+      .get(`http://localhost:8080/staking/stakeAmount/${account}`, {
+        headers:
+          { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      })
       .then((res) => {
         console.log("res.data", res.data);
         setStake(res.data);
@@ -38,11 +42,11 @@ const Withdraw = () => {
   };
   useEffect(() => {
     const token = localStorage.getItem("token");
-    console.log('token',token);
-    
+    console.log('token', token);
+
     const decoder = decodeToken(token)._id
-    console.log('decoder',decoder);
-    
+    console.log('decoder', decoder);
+
     if (decoder) {
       setWithdrawId(decoder);
     }
@@ -59,8 +63,10 @@ const Withdraw = () => {
 
   const withdrawAmount = () => {
     axios
-      .post("http://localhost:8080/staking/withdraw",{ account, stake }, {headers:
-        {Authorization:`Bearer ${localStorage.getItem("token")}`}})
+      .post("http://localhost:8080/staking/withdraw", { account, stake }, {
+        headers:
+          { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      })
       .then((res) => {
         toast.success(res.data.message);
         handleClose();
