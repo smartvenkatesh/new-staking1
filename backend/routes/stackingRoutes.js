@@ -22,7 +22,7 @@ const fetchCryptoRates = async () => {
       ETH: data.ethereum.usd,
       AVAX: data["avalanche-2"].usd,
     };
-    
+
   } catch (error) {
     console.error("Error fetching crypto rates:", error);
     return { ETH: 0, AVAX: 0 };
@@ -105,11 +105,11 @@ router.post("/login", async (req, res) => {
     const otp = generateOTP()
     user.otp = otp
     await user.save()
-    await sendOTPEmail(email,otp)
-    setTimeout(async()=>{
+    await sendOTPEmail(email, otp)
+    setTimeout(async () => {
       user.otp = null
       await user.save()
-    },20000)
+    }, 20000)
 
     res.status(200).json({
       message: "Login successful",
@@ -123,8 +123,8 @@ router.post("/login", async (req, res) => {
 
 router.post("/login/verify-otp", async (req, res) => {
   const { userId, otp } = req.body;
-  console.log('req.body',req.body);
-  
+  console.log('req.body', req.body);
+
   try {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -139,8 +139,8 @@ router.post("/login/verify-otp", async (req, res) => {
 
     const jwtToken = generateToken(user)
     console.log("jwtToken", jwtToken);
-   
-    res.status(200).json({ message: "OTP verified successfully", user,jwtToken });
+
+    res.status(200).json({ message: "OTP verified successfully", user, jwtToken });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
@@ -175,7 +175,7 @@ router.post("/login/resendOtp", async (req, res) => {
 });
 
 
-router.post("/addCurrency",authenticate,authorize("admin"), async (req, res) => {
+router.post("/addCurrency", authenticate, authorize("admin"), async (req, res) => {
   const { currencyName, currencySymbol, usdValue } = req.body;
   try {
     const currency = await Currency.findOne({ currencySymbol });
@@ -197,26 +197,27 @@ router.post("/addCurrency",authenticate,authorize("admin"), async (req, res) => 
   }
 });
 
-router.post("/createConfig",authenticate,authorize("admin"),async(req,res)=>{
-  const {network,apr,duration,type} = req.body
-  console.log('req.body',req.body);
-  
-  try{
-    const currency = await Currency.findOne({currencyName:network})
+router.post("/createConfig", authenticate, authorize("admin"), async (req, res) => {
+  const { network, apr, duration, type } = req.body
+  console.log('req.body', req.body);
+
+  try {
+    const currency = await Currency.findOne({ currencyName: network })
     const config = {
-      currencySymbol:currency.currencySymbol,
+      currencySymbol: currency.currencySymbol,
       apr,
-      duration:Array.isArray(duration) ? duration:duration.split(",").map(d=>d.trim()),
+      duration: Array.isArray(duration) ? duration : duration.split(",").map(d => d.trim()),
       type
     }
     await Config.create(config)
-    res.status(200).json({message:"Config created successfully"})
-}catch(err){
-  console.log(err);
-  res.status(500).json({message:"internal server error"})
-}})
+    res.status(200).json({ message: "Config created successfully" })
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "internal server error" })
+  }
+})
 
-router.post("/wallet" ,authenticate,authorize("user") ,async (req, res) => {
+router.post("/wallet", authenticate, authorize("user"), async (req, res) => {
   const { user_id, address, key, type } = req.body;
 
   try {
@@ -237,18 +238,18 @@ router.post("/wallet" ,authenticate,authorize("user") ,async (req, res) => {
   }
 });
 
-router.get("/address/:userId", authenticate,authorize("admin","user"), async (req, res) => {
+router.get("/address/:userId", authenticate, authorize("admin", "user"), async (req, res) => {
   const { userId } = req.params;
-  console.log('userId',userId);
-  
+  console.log('userId', userId);
+
   if (!userId || userId === "null") {
     return res.status(400).json({ message: "Invalid userId" });
   }
   console.log("1");
-  
+
   const newUserId = new mongoose.Types.ObjectId(userId);
   console.log("2");
-  
+
   try {
     const user = await Wallet.find({ userId: newUserId });
 
@@ -260,7 +261,7 @@ router.get("/address/:userId", authenticate,authorize("admin","user"), async (re
   }
 });
 
-router.get("/getCurrency",authenticate,authorize("admin","user"), async (req, res) => {
+router.get("/getCurrency", authenticate, authorize("admin", "user"), async (req, res) => {
   try {
     const getCurrency = await Currency.find({});
     res.json(getCurrency);
@@ -269,16 +270,16 @@ router.get("/getCurrency",authenticate,authorize("admin","user"), async (req, re
   }
 });
 
-router.post("/addAddress",authenticate,authorize("user") , async (req, res) => {
+router.post("/addAddress", authenticate, authorize("user"), async (req, res) => {
   const { userId, address, currencyName, privateKey } = req.body;
   try {
     const currency = await Currency.findOne(
       { currencyName: currencyName },
       { _id: 1, currencySymbol: 1 }
     );
-    const exists = await Wallet.findOne({ userId:userId,currencyId: currency._id });
-    console.log('exists',exists);
-    
+    const exists = await Wallet.findOne({ userId: userId, currencyId: currency._id });
+    console.log('exists', exists);
+
     if (exists) {
       return res
         .status(400)
@@ -301,7 +302,7 @@ router.post("/addAddress",authenticate,authorize("user") , async (req, res) => {
   }
 });
 
-router.get("/balance/:address/:network",authenticate,authorize("admin","user") , async (req, res) => {
+router.get("/balance/:address/:network", authenticate, authorize("admin", "user"), async (req, res) => {
   const { address, network } = req.params;
 
   try {
@@ -337,7 +338,7 @@ router.get("/balance/:address/:network",authenticate,authorize("admin","user") ,
   }
 });
 
-router.get("/getAddress/:depositId",authenticate,authorize("user"), async (req, res) => {
+router.get("/getAddress/:depositId", authenticate, authorize("user"), async (req, res) => {
   const { depositId } = req.params;
   const newUserId = new mongoose.Types.ObjectId(depositId);
 
@@ -346,19 +347,19 @@ router.get("/getAddress/:depositId",authenticate,authorize("user"), async (req, 
       { userId: newUserId },
       { _id: 1, address: 1 }
     );
-    
+
     res.status(200).json(getUser);
   } catch (error) {
     console.log(error);
   }
 });
 
-router.get("/getConfig",authenticate,authorize("user"),async(req,res)=>{
+router.get("/getConfig", authenticate, authorize("user"), async (req, res) => {
   const config = await Config.find({})
   res.status(200).json(config)
 })
 
-router.post("/addAmount",authenticate,authorize("user") , async (req, res) => {
+router.post("/addAmount", authenticate, authorize("user"), async (req, res) => {
   const { account, amount } = req.body;
   try {
     let wallet = await Wallet.findOne({ address: account });
@@ -373,7 +374,7 @@ router.post("/addAmount",authenticate,authorize("user") , async (req, res) => {
   }
 });
 
-router.get("/all-wallets",authenticate,authorize("admin"), async (req, res) => {
+router.get("/all-wallets", authenticate, authorize("admin"), async (req, res) => {
   try {
     const wallets = await Wallet.aggregate([
       {
@@ -401,9 +402,9 @@ router.get("/all-wallets",authenticate,authorize("admin"), async (req, res) => {
   }
 });
 
-router.post("/stake",authenticate,authorize("user"),async (req, res) => {
+router.post("/stake", authenticate, authorize("user"), async (req, res) => {
   const { userId, walletId, amount, duration, apr, stakeType, network } = req.body;
-console.log('req.body',req.body);
+  console.log('req.body', req.body);
 
   try {
 
@@ -412,19 +413,19 @@ console.log('req.body',req.body);
       return res.status(400).json({ message: "Insufficient balance" });
     }
 
-    if(stakeType === "flexible" && duration < 0 ){
-      return res.status(404).json({message:"flexible stake available only 24 hours"})
+    if (stakeType === "flexible" && duration < 0) {
+      return res.status(404).json({ message: "flexible stake available only 24 hours" })
     }
     wallet.amount -= amount;
     await wallet.save();
 
     console.log("flexible duration");
-    
+
     const newStake = new Staking({
       userId,
       walletId,
       amount,
-      duration :stakeType === "flexible" ? 0 :duration,
+      duration: stakeType === "flexible" ? 0 : duration,
       apr,
       type: stakeType,
       network,
@@ -439,7 +440,7 @@ console.log('req.body',req.body);
   }
 });
 
-router.get("/stakes/:select" ,authenticate,authorize("admin","user") , async (req, res) => {
+router.get("/stakes/:select", authenticate, authorize("admin", "user"), async (req, res) => {
   const { select } = req.params;
   try {
     const stakes = await Staking.aggregate([
@@ -478,14 +479,14 @@ router.get("/stakes/:select" ,authenticate,authorize("admin","user") , async (re
         },
       },
     ]);
-    
+
     res.status(200).json(stakes);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch stakes" });
   }
 });
 
-router.get("/stakes",authenticate,authorize("admin","user") , async (req, res) => {
+router.get("/stakes", authenticate, authorize("admin", "user"), async (req, res) => {
   try {
     const stakes = await Staking.aggregate([
       {
@@ -529,7 +530,7 @@ router.get("/stakes",authenticate,authorize("admin","user") , async (req, res) =
   }
 });
 
-router.get("/customerStake/:userId",authenticate,authorize("admin","user"),async (req, res) => {
+router.get("/customerStake/:userId", authenticate, authorize("admin", "user"), async (req, res) => {
   const { userId } = req.params;
   const newUserId = new mongoose.Types.ObjectId(userId);
 
@@ -554,7 +555,7 @@ router.get("/customerStake/:userId",authenticate,authorize("admin","user"),async
           status: 1,
           "stakeDetails.amount": 1,
           "stakeDetails.address": 1,
-          "stakeDetails.currencyType":1
+          "stakeDetails.currencyType": 1
         },
       },
     ]);
@@ -566,39 +567,41 @@ router.get("/customerStake/:userId",authenticate,authorize("admin","user"),async
   }
 });
 
-router.get("/radeem/:stakeId",authenticate,authorize("user"),async(req,res)=>{
-  const {stakeId} = req.params
+router.get("/radeem/:stakeId", authenticate, authorize("user"), async (req, res) => {
+  const { stakeId } = req.params
   const newUserId = new mongoose.Types.ObjectId(stakeId);
-  try{
+  try {
     const stake = await Staking.aggregate([
-      {$match:{_id:newUserId}},
-      {$lookup:{
-        from:"wallets",
-        localField:"walletId",
-        foreignField:"_id",
-        as:"walletDetails"
-      }},{
-        $unwind:"$walletDetails"
-      },{
-        $project:{
-          _id:0,
-          "walletDetails.address":1,
-          amount:1,
-          network:1,
-          type:1,
-          rewards:1
+      { $match: { _id: newUserId } },
+      {
+        $lookup: {
+          from: "wallets",
+          localField: "walletId",
+          foreignField: "_id",
+          as: "walletDetails"
+        }
+      }, {
+        $unwind: "$walletDetails"
+      }, {
+        $project: {
+          _id: 0,
+          "walletDetails.address": 1,
+          amount: 1,
+          network: 1,
+          type: 1,
+          rewards: 1
         }
       }
     ])
-    console.log('radeem stake',stake);
+    console.log('radeem stake', stake);
     res.status(200).json(stake)
-    
-  }catch(error){
+
+  } catch (error) {
     console.log(error);
   }
 })
 
-router.get("/stakeAmount/:account",authenticate,authorize("admin","user") , async (req, res) => {
+router.get("/stakeAmount/:account", authenticate, authorize("admin", "user"), async (req, res) => {
   const { account } = req.params;
   try {
     const wallet = await Wallet.aggregate([
@@ -633,12 +636,25 @@ router.get("/stakeAmount/:account",authenticate,authorize("admin","user") , asyn
   }
 });
 
-router.post("/withdraw",authenticate,authorize("admin","user") , async (req, res) => {
+router.get("/radeemAmount/:stakeId", authenticate, authorize("user"), async (req, res) => {
+  const { stakeId } = req.params
+  try {
+    const radeem = await Staking.findOne({ _id: stakeId }, { _id: 0, amount: 1 })
+    res.status(200).json(radeem)
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "internal server error" })
+  }
+})
+
+router.post("/withdraw/radeem/:stakeId", authenticate, authorize("admin", "user"), async (req, res) => {
+  const { stakeId } = req.params
+  const newUserId = new mongoose.Types.ObjectId(stakeId);
   const { account } = req.body;
   const wallet = await Wallet.findOne({ address: account });
   const stake = await Staking.findOne({
+    _id: newUserId,
     status: "active",
-    walletId: wallet._id,
   });
 
   console.log("stake from withdraw", stake);
@@ -646,30 +662,53 @@ router.post("/withdraw",authenticate,authorize("admin","user") , async (req, res
   const now = Date.now();
   const stakeEnd =
     new Date(stake.stakeDate).getTime() + stake.duration * 24 * 60 * 60 * 1000;
+  const daysPassed = Math.floor((now - new Date(stake.stakeDate)) / (1000 * 60 * 60 * 24));
 
-    const hoursPassed =
-          (Date.now() - new Date(stake.stakeDate)) / (1000 * 60 * 60);
+  const hoursPassed =
+    (Date.now() - new Date(stake.stakeDate)) / (1000 * 60 * 60);
 
-  if (now >= stakeEnd && stake.type === "fixed") {
-    wallet.amount += stake.amount + (stake.rewards || 0);
-    stake.status = "completed";
-    stake.rewards = 0;
-    stake.amount = 0;
-  } else{
-    wallet.amount += stake.amount;
+  if (stake.type === "fixed") {
+    if (now >= stakeEnd) {
+      wallet.amount += stake.amount + (stake.rewards || 0);
+      stake.status = "completed";
+      stake.rewards = 0;
+      stake.amount = 0;
+    }
+  } else if (daysPassed >= 2) {
+    const cryptoRates = await fetchCryptoRates();
+    console.log('cryptoRates', cryptoRates);
+    const rate = cryptoRates[stake.network];
+    console.log('rate', rate);
+    const amountInUsd = stake.amount * rate;
+    console.log('amountInUsd', amountInUsd);
+    const dailyRate = stake.apr / rate / 365 / 100;
+    console.log("dailyRate", dailyRate);
+    const dailyRewardInUsd = amountInUsd * dailyRate;
+    console.log('dailyRewardInUsd', dailyRewardInUsd);
+    const dailyRewardInCrypto = dailyRewardInUsd / rate;
+    console.log('dailyRewardInCrypto', dailyRewardInCrypto);
+    const partialRewards = dailyRewardInCrypto * daysPassed;
+    console.log('partialRewards', partialRewards);
+    wallet.amount += stake.amount + partialRewards;
     stake.status = "cancelled";
-    stake.amount = 0;
     stake.rewards = 0;
+    stake.amount = 0;
+    console.log("wallet.amount", wallet.amount);
+  } else {
+    wallet.amount += stake.amount
+    stake.status = "cancelled"
+    stake.rewards = 0;
+    stake.amount = 0;
   }
-  console.log('now',now);
-  console.log('hoursPassed',hoursPassed);
-  
+  console.log('now', now);
+  console.log('hoursPassed', hoursPassed);
+
   if (now >= hoursPassed && stake.type === "flexible") {
     wallet.amount += stake.amount + (stake.rewards || 0);
     stake.status = "completed";
     stake.rewards = 0;
     stake.amount = 0;
-  } else{
+  } else {
     wallet.amount += stake.amount;
     stake.status = "cancelled";
     stake.amount = 0;
@@ -681,13 +720,78 @@ router.post("/withdraw",authenticate,authorize("admin","user") , async (req, res
   res.status(200).json({ message: "Withdraw processed" });
 });
 
-cron.schedule("*/5 * * * *", async () => {
+// router.post("/withdraw", authenticate, authorize("admin", "user"), async (req, res) => {
+//   const { account } = req.body;
+//   const wallet = await Wallet.findOne({ address: account });
+//   const stake = await Staking.findOne({
+//     status: "active",
+//     walletId: wallet._id,
+//   });
+
+//   console.log("stake from withdraw", stake);
+
+//   const now = Date.now();
+//   const stakeEnd =
+//     new Date(stake.stakeDate).getTime() + stake.duration * 24 * 60 * 60 * 1000;
+
+//   const hoursPassed =
+//     (now - new Date(stake.stakeDate)) / (1000 * 60 * 60);
+
+//   if (now >= stakeEnd && stake.type === "fixed") {
+//     wallet.amount += stake.amount + (stake.rewards || 0);
+//     stake.status = "completed";
+//     stake.rewards = 0;
+//     stake.amount = 0;
+//   } else {
+//     const cryptoRates = await fetchCryptoRates();
+//     console.log('cryptoRates', cryptoRates);
+//     const rate = cryptoRates[stake.network];
+//     console.log('rate', rate);
+//     const amountInUsd = stake.amount * rate;
+//     console.log('amountInUsd', amountInUsd);
+//     const dailyRate = stake.apr / rate / 365 / 100;
+//     console.log("dailyRate", dailyRate);
+//     const dailyRewardInUsd = amountInUsd * dailyRate;
+//     console.log('dailyRewardInUsd', dailyRewardInUsd);
+//     const dailyRewardInCrypto = dailyRewardInUsd / rate;
+//     console.log('dailyRewardInCrypto', dailyRewardInCrypto);
+//     const partialRewards = dailyRewardInCrypto * daysPassed;
+//     console.log('partialRewards', partialRewards);
+//     wallet.amount += stake.amount + partialRewards;
+//     stake.status = "cancelled";
+//     stake.rewards = 0;
+//     stake.amount = 0;
+//     log
+//   }
+//   console.log('now', now);
+//   console.log('hoursPassed', hoursPassed);
+
+//   if (stake.type === "flexible") {
+//     const minhours = 24
+//     if (hoursPassed >= minhours)
+//       wallet.amount += stake.amount + (stake.rewards || 0);
+//     stake.status = "completed";
+//     stake.rewards = 0;
+//     stake.amount = 0;
+//   } else {
+//     wallet.amount += stake.amount;
+//     stake.status = "cancelled";
+//     stake.amount = 0;
+//     stake.rewards = 0;
+//   }
+
+//   await wallet.save();
+//   await stake.save();
+//   res.status(200).json({ message: "Withdraw processed" });
+// });
+
+cron.schedule("*/1 * * * *", async () => {
   console.log("Running staking reward cron...");
 
   try {
     const activeStakes = await Staking.find({ status: "active" });
     const cryptoRates = await fetchCryptoRates();
-    console.log('cryptoRates',cryptoRates);
+    console.log('cryptoRates', cryptoRates);
 
     for (const stake of activeStakes) {
       const stakeDate = new Date(stake.stakeDate);
@@ -698,27 +802,24 @@ cron.schedule("*/5 * * * *", async () => {
       const { amount, network, apr, type, duration } = stake;
       const rate = cryptoRates[network];
 
+      const newCheck = now >= daysPassed
+      console.log("newdaysPassed", daysPassed);
+      console.log("newStakeDate", now);
+      console.log('newCheck', newCheck);
+
       if (!rate) {
         console.warn(`Rate not found for ${network}`);
         continue;
       }
 
       const amountInUsd = amount * rate;
-      console.log('amount',amount);
-      
-      console.log("rate",rate);
-      console.log("amountInUsd",amountInUsd);
-      console.log(daysPassed);
-      
+
       const dailyRate = apr / rate / 365 / 100;
-      console.log('dailyRate',dailyRate);
-      
+
       const dailyRewardInUsd = amountInUsd * dailyRate;
-      console.log('dailyRewardInUsd',dailyRewardInUsd);
-      
+
       const dailyRewardInCrypto = dailyRewardInUsd / rate;
-      console.log('dailyRewardInCrypto',dailyRewardInCrypto);
-      
+
       if (type === "flexible") {
         if (hoursPassed >= 24) {
           stake.rewards = (stake.rewards || 0) + dailyRewardInCrypto;
@@ -726,9 +827,6 @@ cron.schedule("*/5 * * * *", async () => {
           stake.update += 1
         }
       } else if (type === "fixed") {
-        const check = daysPassed <= duration
-        console.log('check',check);
-        
         if (daysPassed <= duration) {
           stake.rewards = (stake.rewards || 0) + dailyRewardInCrypto;
           stake.update += 1
@@ -736,7 +834,7 @@ cron.schedule("*/5 * * * *", async () => {
         if (daysPassed >= duration) {
           stake.status = "completed";
         }
-        
+
       }
 
       await stake.save();
@@ -759,20 +857,20 @@ cron.schedule("*/5 * * * *", async () => {
 //     const cryptoRate = await fetchCryptoRates()
 
 //     for (const stake of activeStakes) {
-      
+
 //       const stakeDate = new Date(stake.stakeDate)
 //       const daysPassed = Math.floor((Date.now() - stakeDate) / (1000 * 60 * 60 * 24))
 //       console.log("stakeDate",stakeDate);
 //       console.log('daysPassed',daysPassed);
 //       console.log("minus",stakeDate-daysPassed);
-      
+
 //       if (stake.type === "flexible" && stake.status !== "completed") {
 //         const hoursPassed =
 //           (Date.now() - new Date(stake.stakeDate)) / (1000 * 60 * 60);
 //           console.log("hoursPassed for flexible", hoursPassed);
 //           const FLEXIBLE_APR = stake.apr
 //           console.log('FLEXIBLE_APR',FLEXIBLE_APR);
-          
+
 //           const DAILY_RATE_FLEXIBLE = FLEXIBLE_APR / 365 / 100;
 //           if(hoursPassed >= 24){
 //             stake.status = "completed"
@@ -788,10 +886,10 @@ cron.schedule("*/5 * * * *", async () => {
 //     if(stake.type === "fixed" && stake.status !== "completed"){
 //         const FIXED_APR = stake.apr
 //         console.log("FIXED_APR",FIXED_APR);
-        
+
 //         const DAILY_RATE_FIXED = FIXED_APR / 365 / 100;
 //         console.log('DAILY_RATE_FIXED',DAILY_RATE_FIXED);
-        
+
 //         const reward = stake.amount * DAILY_RATE_FIXED;
 //         console.log("reward from fixed", reward);
 //         stake.rewards = (stake.rewards || 0) + reward;
@@ -801,11 +899,11 @@ cron.schedule("*/5 * * * *", async () => {
 //         }
 //       }else{
 //         console.log("fixed stake completed",stake.walletId);
-        
+
 //       }
 //       await stake.save();
 //     }
-  
+
 //     console.log("Staking rewards updated.");
 //   } catch (err) {
 //     console.error("Error calculating rewards:", err);
