@@ -245,10 +245,8 @@ router.get("/address/:userId", authenticate, authorize("admin", "user"), async (
   if (!userId || userId === "null") {
     return res.status(400).json({ message: "Invalid userId" });
   }
-  console.log("1");
 
   const newUserId = new mongoose.Types.ObjectId(userId);
-  console.log("2");
 
   try {
     const user = await Wallet.find({ userId: newUserId });
@@ -413,9 +411,14 @@ router.post("/stake", authenticate, authorize("user"), async (req, res) => {
       return res.status(400).json({ message: "Insufficient balance" });
     }
 
+    if(wallet.amount - amount < 30){
+      return res.status(400).json({message:"Atleast maintain minimum balance 30 usd"})
+    }
+
     if (stakeType === "flexible" && duration < 0) {
       return res.status(404).json({ message: "flexible stake available only 24 hours" })
     }
+    
     wallet.amount -= amount;
     await wallet.save();
 
@@ -654,18 +657,21 @@ router.post("/withdraw/radeem/:stakeId", authenticate, authorize("admin", "user"
   const wallet = await Wallet.findOne({ address: account });
   const stake = await Staking.findOne({
     _id: newUserId,
-    status: "active",
   });
-
-  console.log("stake from withdraw", stake);
 
   const now = Date.now();
   const stakeEnd =
     new Date(stake.stakeDate).getTime() + stake.duration * 24 * 60 * 60 * 1000;
   const daysPassed = Math.floor((now - new Date(stake.stakeDate)) / (1000 * 60 * 60 * 24));
+  console.log('now',now);
+  console.log('stakeEnd',stakeEnd);
+  console.log('daysPassed',daysPassed);
 
   const hoursPassed =
     (Date.now() - new Date(stake.stakeDate)) / (1000 * 60 * 60);
+    if(stake.amount === 0){
+      return res.status(400).json({message:"stake amount is 0"})
+    }
 
   if (stake.type === "fixed") {
     if (now >= stakeEnd) {
@@ -673,8 +679,13 @@ router.post("/withdraw/radeem/:stakeId", authenticate, authorize("admin", "user"
       stake.status = "completed";
       stake.rewards = 0;
       stake.amount = 0;
+    }else {
+      wallet.amount += stake.amount
+      stake.status = "cancelled"
+      stake.rewards = 0;
+      stake.amount = 0;
     }
-  } else if (daysPassed >= 2) {
+  } if (daysPassed >= 2 && stake.status === "active") {
     const cryptoRates = await fetchCryptoRates();
     console.log('cryptoRates', cryptoRates);
     const rate = cryptoRates[stake.network];
@@ -694,96 +705,34 @@ router.post("/withdraw/radeem/:stakeId", authenticate, authorize("admin", "user"
     stake.rewards = 0;
     stake.amount = 0;
     console.log("wallet.amount", wallet.amount);
-  } else {
-    wallet.amount += stake.amount
-    stake.status = "cancelled"
-    stake.rewards = 0;
-    stake.amount = 0;
   }
-  console.log('now', now);
-  console.log('hoursPassed', hoursPassed);
+const flexibleCheck = now >= stakeEnd
+console.log("flexibleCheck",flexibleCheck);
 
-  if (now >= hoursPassed && stake.type === "flexible") {
+
+
+  if (stake.type === "flexible") {
+    if(stake.status === "completed"){
     wallet.amount += stake.amount + (stake.rewards || 0);
-    stake.status = "completed";
     stake.rewards = 0;
     stake.amount = 0;
-  } else {
-    wallet.amount += stake.amount;
-    stake.status = "cancelled";
-    stake.amount = 0;
-    stake.rewards = 0;
-  }
+    console.log("true");
+    
+    }else{
+      wallet.amount += stake.amount;
+      stake.status = "cancelled";
+      stake.amount = 0;
+      stake.rewards = 0;
+    console.log("false");
+
+    }
+  } 
 
   await wallet.save();
   await stake.save();
   res.status(200).json({ message: "Withdraw processed" });
 });
 
-// router.post("/withdraw", authenticate, authorize("admin", "user"), async (req, res) => {
-//   const { account } = req.body;
-//   const wallet = await Wallet.findOne({ address: account });
-//   const stake = await Staking.findOne({
-//     status: "active",
-//     walletId: wallet._id,
-//   });
-
-//   console.log("stake from withdraw", stake);
-
-//   const now = Date.now();
-//   const stakeEnd =
-//     new Date(stake.stakeDate).getTime() + stake.duration * 24 * 60 * 60 * 1000;
-
-//   const hoursPassed =
-//     (now - new Date(stake.stakeDate)) / (1000 * 60 * 60);
-
-//   if (now >= stakeEnd && stake.type === "fixed") {
-//     wallet.amount += stake.amount + (stake.rewards || 0);
-//     stake.status = "completed";
-//     stake.rewards = 0;
-//     stake.amount = 0;
-//   } else {
-//     const cryptoRates = await fetchCryptoRates();
-//     console.log('cryptoRates', cryptoRates);
-//     const rate = cryptoRates[stake.network];
-//     console.log('rate', rate);
-//     const amountInUsd = stake.amount * rate;
-//     console.log('amountInUsd', amountInUsd);
-//     const dailyRate = stake.apr / rate / 365 / 100;
-//     console.log("dailyRate", dailyRate);
-//     const dailyRewardInUsd = amountInUsd * dailyRate;
-//     console.log('dailyRewardInUsd', dailyRewardInUsd);
-//     const dailyRewardInCrypto = dailyRewardInUsd / rate;
-//     console.log('dailyRewardInCrypto', dailyRewardInCrypto);
-//     const partialRewards = dailyRewardInCrypto * daysPassed;
-//     console.log('partialRewards', partialRewards);
-//     wallet.amount += stake.amount + partialRewards;
-//     stake.status = "cancelled";
-//     stake.rewards = 0;
-//     stake.amount = 0;
-//     log
-//   }
-//   console.log('now', now);
-//   console.log('hoursPassed', hoursPassed);
-
-//   if (stake.type === "flexible") {
-//     const minhours = 24
-//     if (hoursPassed >= minhours)
-//       wallet.amount += stake.amount + (stake.rewards || 0);
-//     stake.status = "completed";
-//     stake.rewards = 0;
-//     stake.amount = 0;
-//   } else {
-//     wallet.amount += stake.amount;
-//     stake.status = "cancelled";
-//     stake.amount = 0;
-//     stake.rewards = 0;
-//   }
-
-//   await wallet.save();
-//   await stake.save();
-//   res.status(200).json({ message: "Withdraw processed" });
-// });
 
 cron.schedule("*/1 * * * *", async () => {
   console.log("Running staking reward cron...");
@@ -799,14 +748,11 @@ cron.schedule("*/1 * * * *", async () => {
       const hoursPassed = (now - stakeDate) / (1000 * 60 * 60);
       const daysPassed = Math.floor(hoursPassed / 24);
 
-      const { amount, network, apr, type, duration } = stake;
+      const { amount, network, apr, type, duration ,status} = stake;
       const rate = cryptoRates[network];
 
       const newCheck = now >= daysPassed
-      console.log("newdaysPassed", daysPassed);
-      console.log("newStakeDate", now);
-      console.log('newCheck', newCheck);
-
+     
       if (!rate) {
         console.warn(`Rate not found for ${network}`);
         continue;
@@ -819,14 +765,18 @@ cron.schedule("*/1 * * * *", async () => {
       const dailyRewardInUsd = amountInUsd * dailyRate;
 
       const dailyRewardInCrypto = dailyRewardInUsd / rate;
+      
 
       if (type === "flexible") {
-        if (hoursPassed >= 24) {
+        if (hoursPassed <= 24 && status === "active") {
           stake.rewards = (stake.rewards || 0) + dailyRewardInCrypto;
           stake.stakeDate = now;
           stake.update += 1
+        }if(hoursPassed >= 24){
+          stake.status = "completed"
         }
-      } else if (type === "fixed") {
+      }
+       if (type === "fixed") {
         if (daysPassed <= duration) {
           stake.rewards = (stake.rewards || 0) + dailyRewardInCrypto;
           stake.update += 1
@@ -846,68 +796,5 @@ cron.schedule("*/1 * * * *", async () => {
   }
 });
 
-
-
-
-// cron.schedule("*/2 * * * *", async () => {
-//   console.log("Running daily staking rewards...");
-
-//   try {
-//     const activeStakes = await Staking.find({ status: "active" });
-//     const cryptoRate = await fetchCryptoRates()
-
-//     for (const stake of activeStakes) {
-
-//       const stakeDate = new Date(stake.stakeDate)
-//       const daysPassed = Math.floor((Date.now() - stakeDate) / (1000 * 60 * 60 * 24))
-//       console.log("stakeDate",stakeDate);
-//       console.log('daysPassed',daysPassed);
-//       console.log("minus",stakeDate-daysPassed);
-
-//       if (stake.type === "flexible" && stake.status !== "completed") {
-//         const hoursPassed =
-//           (Date.now() - new Date(stake.stakeDate)) / (1000 * 60 * 60);
-//           console.log("hoursPassed for flexible", hoursPassed);
-//           const FLEXIBLE_APR = stake.apr
-//           console.log('FLEXIBLE_APR',FLEXIBLE_APR);
-
-//           const DAILY_RATE_FLEXIBLE = FLEXIBLE_APR / 365 / 100;
-//           if(hoursPassed >= 24){
-//             stake.status = "completed"
-//           }
-//           const reward = stake.amount * DAILY_RATE_FLEXIBLE;
-//           console.log("reward for flexible", reward);
-//           stake.rewards = (stake.rewards || 0) + reward;
-//           stake.update += 1
-//       }else{
-//         console.log("flexible stake completed",stake.walletId);  
-//       }
-
-//     if(stake.type === "fixed" && stake.status !== "completed"){
-//         const FIXED_APR = stake.apr
-//         console.log("FIXED_APR",FIXED_APR);
-
-//         const DAILY_RATE_FIXED = FIXED_APR / 365 / 100;
-//         console.log('DAILY_RATE_FIXED',DAILY_RATE_FIXED);
-
-//         const reward = stake.amount * DAILY_RATE_FIXED;
-//         console.log("reward from fixed", reward);
-//         stake.rewards = (stake.rewards || 0) + reward;
-//         stake.update += 1
-//         if(daysPassed >= stake.duration){
-//           stake.status = "completed"
-//         }
-//       }else{
-//         console.log("fixed stake completed",stake.walletId);
-
-//       }
-//       await stake.save();
-//     }
-
-//     console.log("Staking rewards updated.");
-//   } catch (err) {
-//     console.error("Error calculating rewards:", err);
-//   }
-// });
 
 export default router;

@@ -45,7 +45,6 @@ const Stake = () => {
               setApr(calculatedApr);
             }else if(firstNumber[0] === duration){
               const calculatedApr = matchedConfig.apr / (6 / duration);
-              console.log("welcome")
               setApr(calculatedApr);
             }
             } else {
@@ -54,16 +53,7 @@ const Stake = () => {
           } else {
             setApr(matchedConfig.apr);
           }
-          // if(duration === reverse[0]){
-          //   setApr(matchedConfig.apr)
-          // console.log("duration[0]",apr)
-          // }else if(duration === reverse[1] ){
-          // setApr(matchedConfig.apr/duration)
-          // console.log("duration[1]",apr)
-          // }else if(duration === reverse[2] ){
-          //   setApr(matchedConfig.apr/duration)
-          // console.log("duration[2]",apr)
-          //   }
+         
         } else {
           setStakeConfig([]);
         }
@@ -75,7 +65,6 @@ const Stake = () => {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    console.log('token',token);
     
     const decoder = decodeToken(token)._id
     console.log('decoder',decoder);

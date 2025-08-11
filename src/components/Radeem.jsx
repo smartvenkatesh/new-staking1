@@ -37,8 +37,6 @@ const Radeem = () => {
     }
   };
 
-
-  // Get user ID from token
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -47,7 +45,6 @@ const Radeem = () => {
     }
   }, []);
 
-  // When stakeId changes, fetch wallet
   useEffect(() => {
     if (stakeId) {
       getAddress();
@@ -55,7 +52,6 @@ const Radeem = () => {
   }, [stakeId]);
 
 
-  // Withdraw request
   const withdrawAmount = async () => {
     try {
       const account = walletDetails.walletDetails.address;
