@@ -4,6 +4,7 @@ import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import { Button } from "react-bootstrap";
 import decodeToken from "../utils/decode";
+import '../App.css'
 
 const PORT = "http://localhost:8080/staking";
 
@@ -18,45 +19,18 @@ const Stake = () => {
   const [apr,setApr] = useState("")
 
   const getConfig = () => {
+    const currencySymbol = state.type
+    console.log('currencySymbol',currencySymbol);
+    
     axios
-      .get("http://localhost:8080/staking/getConfig", {
+      .get(`http://localhost:8080/staking/getConfig/${currencySymbol}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       })
-      .then((res) => {
-        const allConfigs = res.data;
-        
-        const matchedConfig = allConfigs.find(
-          (cfg) =>
-            cfg.currencySymbol === state.type && cfg.type === stakeType
-        );
-        if (matchedConfig) {
-          const reverse = matchedConfig.duration.reverse()
-          console.log('reverse',reverse)
-          setStakeConfig(matchedConfig);
-          setApr(matchedConfig.apr)
-
-          if (matchedConfig.type === "fixed") {
-
-            if (matchedConfig.duration.includes(duration)) {
-              const firstNumber = reverse.slice(0,1)
-              console.log(firstNumber[0])
-            if(firstNumber[0] !== duration){
-              const calculatedApr = matchedConfig.apr / (8 / duration);
-              setApr(calculatedApr);
-            }else if(firstNumber[0] === duration){
-              const calculatedApr = matchedConfig.apr / (6 / duration);
-              setApr(calculatedApr);
-            }
-            } else {
-              console.warn("Selected duration not found in config");
-            }
-          } else {
-            setApr(matchedConfig.apr);
-          }
-         
-        } else {
-          setStakeConfig([]);
-        }
+      .then((res) => {   
+        setStakeConfig(res.data)
+        setApr(res.data[0].plans[0].apr);
+        console.log("customer",res.data);
+        console.log("test",res.data[0].plans[0].apr);
       })
       .catch((err) => {
         console.error("Error fetching config", err);
@@ -76,7 +50,8 @@ const Stake = () => {
 
   useEffect(()=>{
     getConfig()
-  },[stakeType,duration])
+    
+  },[])
 
   const handleStakeSubmit = async () => {
     console.log(stakeAmount)
@@ -128,37 +103,58 @@ const Stake = () => {
           <strong>Balance:</strong> {state.amount} USD
         </p>
 
-        <select value={stakeType} onChange={(e) => setStakeType(e.target.value)}>
-         <option value="fixed">Fixed</option>
-         <option value="flexible">Flexible</option>
+        <select
+          value={stakeType}
+          onChange={(e) => setStakeType(e.target.value)}
+        >
+          <option value="fixed">Fixed</option>
+          <option value="flexible">Flexible</option>
         </select>
 
-        <p><strong>APR</strong> : {apr}%</p>
-
-   {stakeConfig?.duration && stakeType === "fixed" && (
-     <div>
-       <label>Duration (days):</label>
-        <div style={{ display: "flex",justifyContent:"center", gap: "10px" }}>
-        {stakeConfig.duration.map((d, idx) => (
-        <button
-          key={idx}
-          onClick={() => setDuration(d)}
-          style={{
-            padding: "8px 12px",
-            backgroundColor: duration === d ? "green" : "#e0e0e0",
-            color: duration === d ? "white" : "black",
-            border: "none",
-            borderRadius: "15px",
-          }}
-        >
-          {d}
-        </button>
-       ))}
-      </div>
-     </div>
-    )}
-
+        <p>
+          <strong>APR</strong> : {apr}%
+        </p>
+        {stakeType === "fixed" && (
           <div>
+            <label>Duration (days):</label>
+            <div className="customerStake">
+              {stakeConfig
+                .filter((cfg) => cfg.type === stakeType)
+                .map((cfg) => (
+                  <div key={cfg._id}>
+                    <div>
+                      {cfg.plans.map((plan, idx) => (
+                        <div>
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              setDuration(plan.duration);
+                              setApr(plan.apr);
+                            }}
+                            style={{
+                              padding: "8px 12px",
+                              backgroundColor:
+                                duration === plan.duration
+                                  ? "green"
+                                  : "#e0e0e0",
+                              color:
+                                duration === plan.duration ? "white" : "black",
+                              border: "none",
+                              borderRadius: "15px",
+                            }}
+                          >
+                            {plan.duration}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        <div>
           <label>Amount: </label>
           <input
             type="number"
@@ -167,7 +163,6 @@ const Stake = () => {
             placeholder="Enter amount"
           />
         </div>
-        
 
         <button
           onClick={handleStakeSubmit}

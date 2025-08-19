@@ -2,11 +2,15 @@ import mongoose from "mongoose";
 
 
 const configSchema = new mongoose.Schema({
-    currencySymbol:String,
-    apr:Number,
-    duration:[Number],
-    type:String
-})
+  currencySymbol: String,
+  type: String,
+  plans: [
+    {
+      duration: Number,
+      apr: Number,
+    },
+  ],
+});
 
 const Config = mongoose.model("Config",configSchema)
 

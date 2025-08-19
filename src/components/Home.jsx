@@ -13,6 +13,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { toast, ToastContainer } from "react-toastify";
 import { Button } from "react-bootstrap";
 import decodeToken from "../utils/decode"
+import { jwtDecode } from "jwt-decode";
 
 const PORT = "http://localhost:8080/staking";
 
@@ -30,15 +31,15 @@ const Home = () => {
   const [staking, setStaking] = useState([]);
   const [stakeHistory, setStakeHistory] = useState([]);
   const [activeTab, setActiveTab] = useState("home");
+  const [expired,setExpired] = useState("")
 
   const navigate = useNavigate();
 
   const getWallets = async (toCurrency) => {
     const type = toCurrency.toLowerCase();
-    console.log("1");
 
     setOpen(false);
-    console.log("2");
+
     try {
       const res = await axios.get(`${PORT}/address/${userId}`, {
         headers:
@@ -57,8 +58,11 @@ const Home = () => {
         let rate = 1;
         if (wallet.currencyType === "ETH") rate = ethRate;
         else if (wallet.currencyType === "AVAX") rate = avaxRate;
-
+        console.log("walletAmount",wallet.amount);
+        
         const virtualMoneyInCrypto = wallet.amount / rate;
+        console.log('virtualMoneyInCrypto',virtualMoneyInCrypto);
+        
         return { ...wallet, virtualMoneyInCrypto };
       });
 
@@ -68,23 +72,39 @@ const Home = () => {
       console.error("Wallet fetch error", err);
     }
   };
-
+  
   useEffect(() => {
     const token = localStorage.getItem("token");
     console.log('token', token);
 
-    const decoder = decodeToken(token)._id
+    const decoder = decodeToken(token)
     console.log('decoder', decoder);
+    console.log('current time',Date.now());
 
-    if (decoder) {
-      setUserId(decoder);
+    if (decoder._id) {
+      setUserId(decoder._id);
     }
-  }, []);
+    setExpired(isTokenExpired(token))
+    if (expired === true) {
+      toast.warning("token is expired please login again");
+    }
+  }, [expired]);
+
+  const isTokenExpired = (token) => {
+    if (!token) return true;
+    try {
+      const decodedToken = jwtDecode(token);
+      const currentTime = Date.now() / 1000;
+      return decodedToken.exp < currentTime;
+    } catch (error) {
+      console.error("Error decoding token:", error);
+      return true;
+    }
+  };
 
   useEffect(() => {
     if (userId) {
       getWallets(toCurrency);
-
       const fetchExchangeRate = async () => {
         try {
           const response = await fetch(
@@ -96,9 +116,10 @@ const Home = () => {
           console.error("Error fetching exchange rate:", error);
         }
       };
-
       fetchExchangeRate();
     }
+    
+    
   }, [userId, toCurrency]);
 
   useEffect(() => {
@@ -124,7 +145,10 @@ const Home = () => {
       .then((res) => {
         setStaking(res.data);
         console.log("res.data", res.data);
-      });
+      }).catch((err)=>{
+        console.log("new problem");
+        toast.error("token is expired")
+      })
   };
 
   const handleStakeHistory = () => {
@@ -163,9 +187,7 @@ const Home = () => {
             <Nav className="me-auto">
               <Nav.Link onClick={goToCreateAddress}>Create Account</Nav.Link>
               <Nav.Link onClick={goToDeposit}>Deposit</Nav.Link>
-              <Nav.Link onClick={() => navigate("/staking/withdraw")}>
-                Withdraw
-              </Nav.Link>
+              
               <NavDropdown
                 title={`Currency: ${toCurrency}`}
                 id="currency-nav-dropdown"

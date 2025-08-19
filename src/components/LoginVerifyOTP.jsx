@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import "../App.css";
 import { toast, ToastContainer } from "react-toastify";
+import { jwtDecode } from "jwt-decode";
 
 const VerifyOTP = () => {
   const [otp, setOtp] = useState("");
@@ -47,6 +48,18 @@ const VerifyOTP = () => {
         clearInterval(timerRef.current);
       }
     };
+  }, []);
+  useEffect(() => {
+    const getToken = localStorage.getItem("token");
+    if (getToken) {
+      const decoder = jwtDecode(getToken);
+      console.log("decoder", decoder);
+      if (decoder.role === "user") {
+        navigate("/staking/home");
+      } else {
+        navigate("/admin");
+      }
+    }
   }, []);
 
   const handleSubmit = async (e) => {

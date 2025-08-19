@@ -157,6 +157,7 @@
 .admin-table-wrapper {
   margin-top: 20px;
   overflow-x: auto;
+  margin-left: 20px;
 }
 
 .admin-table {
@@ -297,4 +298,49 @@
 .profile-body .tr .td{
   border: 1px solid black;
   padding: 10px;
+}
+.sideToTable{
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+}
+.admin-layout {
+  display: flex;
+}
+
+.admin-sidebar {
+  width: 220px;
+  background: #222;
+  color: white;
+  min-height: calc(100vh - 60px);
+  padding: 15px;
+}
+
+.admin-sidebar button,
+.admin-sidebar select {
+  border-radius: 8px;
+}
+
+.admin-main {
+  flex: 1;
+  padding: 20px;
+}
+.round{
+  width: 150px;
+  height: 150px;
+  padding: 30px;
+  border-radius: 50%;
+  background-color: yellow;
+  text-align: center;
+  border: 3px solid black;
+}
+.round-head{
+  display: flex;
+  padding: 10px;
+  gap: 10px;
+}
+.customerStake{
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  font-size: 20px;
 }

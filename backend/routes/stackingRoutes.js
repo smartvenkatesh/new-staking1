@@ -11,6 +11,7 @@ import { generateOTP, sendOTPEmail } from "../utils/sendMail.js";
 import { authenticate, authorize } from "../middlewares/authMiddleware.js";
 import { generateToken } from "../utils/auth.js";
 import Config from "../models/Config.js";
+import History from "../models/History.js";
 
 const fetchCryptoRates = async () => {
   try {
@@ -176,17 +177,17 @@ router.post("/login/resendOtp", async (req, res) => {
 
 
 router.post("/addCurrency", authenticate, authorize("admin"), async (req, res) => {
-  const { currencyName, currencySymbol, usdValue } = req.body;
+  const { currencyName, currencySymbol} = req.body;
+  console.log('req.body',req.body);
+  
   try {
     const currency = await Currency.findOne({ currencySymbol });
     if (currency) {
       return res.status(400).json({ message: "This currency already added" });
     }
-
     const addCurrency = new Currency({
       currencyName,
       currencySymbol,
-      usdValue,
     });
 
     await addCurrency.save();
@@ -197,25 +198,70 @@ router.post("/addCurrency", authenticate, authorize("admin"), async (req, res) =
   }
 });
 
-router.post("/createConfig", authenticate, authorize("admin"), async (req, res) => {
-  const { network, apr, duration, type } = req.body
-  console.log('req.body', req.body);
+router.post("/createConfig",authenticate,authorize("admin"),
+  async (req, res) => {
+    const { network, type, plans } = req.body;
+    try {
+      const currency = await Currency.findOne({ currencyName: network });
+      const config = new Config({
+        currencySymbol:currency.currencySymbol,
+        type,
+        plans,
+      });
 
-  try {
-    const currency = await Currency.findOne({ currencyName: network })
-    const config = {
-      currencySymbol: currency.currencySymbol,
-      apr,
-      duration: Array.isArray(duration) ? duration : duration.split(",").map(d => d.trim()),
-      type
+      await config.save();
+      res.status(200).json({ message: "Config created successfully" });
+    } catch (err) {
+      console.error("Config create error:", err);
+      res.status(500).json({ message: "Internal server error" });
     }
-    await Config.create(config)
-    res.status(200).json({ message: "Config created successfully" })
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({ message: "internal server error" })
   }
+);
+
+router.put(
+  "/updateConfig/:id",
+  authenticate,
+  authorize("admin"),
+  async (req, res) => {
+    const { duration, apr } = req.body;
+
+    try {
+      const config = await Config.findById(req.params.id);
+      if (!config) return res.status(404).json({ message: "Config not found" });
+
+      const plan = config.plans.find((p) => p.duration === duration);
+      if (!plan) return res.status(404).json({ message: "Duration not found" });
+
+      plan.apr = apr;
+      await config.save();
+
+      res.status(200).json({ message: "Config updated successfully", config });
+    } catch (err) {
+      console.error("Config update error:", err);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+);
+
+router.get("/getCurrency", authenticate, authorize("admin"), async(req, res)=>{
+  const currency = await Currency.find({})
+  res.status(200).json(currency)
+});
+
+router.get("/getConfig/:currencySymbol",authenticate,authorize("admin","user"),async(req,res)=>{
+  const {currencySymbol} = req.params
+  const config = await Config.find({currencySymbol})
+  console.log('config',config);
+  res.status(200).json(config)
 })
+
+router.get("/getConfigAdmin",authenticate,authorize("admin", "user"),async (req, res) => {
+
+    const config = await Config.find({});
+
+    res.status(200).json(config);
+  }
+);
 
 router.post("/wallet", authenticate, authorize("user"), async (req, res) => {
   const { user_id, address, key, type } = req.body;
@@ -240,7 +286,6 @@ router.post("/wallet", authenticate, authorize("user"), async (req, res) => {
 
 router.get("/address/:userId", authenticate, authorize("admin", "user"), async (req, res) => {
   const { userId } = req.params;
-  console.log('userId', userId);
 
   if (!userId || userId === "null") {
     return res.status(400).json({ message: "Invalid userId" });
@@ -352,10 +397,10 @@ router.get("/getAddress/:depositId", authenticate, authorize("user"), async (req
   }
 });
 
-router.get("/getConfig", authenticate, authorize("user"), async (req, res) => {
-  const config = await Config.find({})
-  res.status(200).json(config)
-})
+// router.get("/getConfig", authenticate, authorize("user"), async (req, res) => {
+//   const config = await Config.find({})
+//   res.status(200).json(config)
+// })
 
 router.post("/addAmount", authenticate, authorize("user"), async (req, res) => {
   const { account, amount } = req.body;
@@ -421,8 +466,6 @@ router.post("/stake", authenticate, authorize("user"), async (req, res) => {
     
     wallet.amount -= amount;
     await wallet.save();
-
-    console.log("flexible duration");
 
     const newStake = new Staking({
       userId,
@@ -658,14 +701,27 @@ router.post("/withdraw/radeem/:stakeId", authenticate, authorize("admin", "user"
   const stake = await Staking.findOne({
     _id: newUserId,
   });
+  const history = new History({
+    userId:stake.userId,
+    walletId:stake.walletId,
+    stakeAddress:wallet.address,
+    amount:stake.amount,
+    network:stake.network,
+    stakeDate:stake.stakeDate,
+    duration:stake.duration,
+    apr:stake.apr,
+    type:stake.type,
+    status:stake.status,
+    rewards:stake.rewards,
+    update:stake.update
+  })
+
+  await history.save()
 
   const now = Date.now();
   const stakeEnd =
     new Date(stake.stakeDate).getTime() + stake.duration * 24 * 60 * 60 * 1000;
   const daysPassed = Math.floor((now - new Date(stake.stakeDate)) / (1000 * 60 * 60 * 24));
-  console.log('now',now);
-  console.log('stakeEnd',stakeEnd);
-  console.log('daysPassed',daysPassed);
 
   const hoursPassed =
     (Date.now() - new Date(stake.stakeDate)) / (1000 * 60 * 60);
@@ -679,62 +735,95 @@ router.post("/withdraw/radeem/:stakeId", authenticate, authorize("admin", "user"
       stake.status = "completed";
       stake.rewards = 0;
       stake.amount = 0;
-    }else {
-      wallet.amount += stake.amount
-      stake.status = "cancelled"
+      console.log("test 1");
+      
+    }else if (daysPassed >= 2 && stake.status === "active") {
+      wallet.amount += stake.amount + stake.rewards / 2;
+      stake.status = "cancelled";
       stake.rewards = 0;
       stake.amount = 0;
+      console.log("wallet.amount", wallet.amount);
+      console.log("test 2");
+    } else {
+      wallet.amount += stake.amount;
+      stake.status = "cancelled";
+      stake.rewards = 0;
+      stake.amount = 0;
+      console.log("test 3");
+       await wallet.save();
+       await stake.save();
+       history.status = stake.status;
+       await history.save();
+       res.status(200).json({ message: "Withdraw Successful" });
+      return;
     }
-  } if (daysPassed >= 2 && stake.status === "active") {
-    const cryptoRates = await fetchCryptoRates();
-    console.log('cryptoRates', cryptoRates);
-    const rate = cryptoRates[stake.network];
-    console.log('rate', rate);
-    const amountInUsd = stake.amount * rate;
-    console.log('amountInUsd', amountInUsd);
-    const dailyRate = stake.apr / rate / 365 / 100;
-    console.log("dailyRate", dailyRate);
-    const dailyRewardInUsd = amountInUsd * dailyRate;
-    console.log('dailyRewardInUsd', dailyRewardInUsd);
-    const dailyRewardInCrypto = dailyRewardInUsd / rate;
-    console.log('dailyRewardInCrypto', dailyRewardInCrypto);
-    const partialRewards = dailyRewardInCrypto * daysPassed;
-    console.log('partialRewards', partialRewards);
-    wallet.amount += stake.amount + partialRewards;
-    stake.status = "cancelled";
-    stake.rewards = 0;
-    stake.amount = 0;
-    console.log("wallet.amount", wallet.amount);
-  }
-const flexibleCheck = now >= stakeEnd
-console.log("flexibleCheck",flexibleCheck);
-
-
+  } 
+  
+  const flexibleCheck = now >= stakeEnd
+  console.log("flexibleCheck",flexibleCheck);
 
   if (stake.type === "flexible") {
     if(stake.status === "completed"){
     wallet.amount += stake.amount + (stake.rewards || 0);
     stake.rewards = 0;
     stake.amount = 0;
-    console.log("true");
-    
+    console.log("test 4");
     }else{
       wallet.amount += stake.amount;
       stake.status = "cancelled";
       stake.amount = 0;
       stake.rewards = 0;
-    console.log("false");
+    console.log("test 5");
 
     }
   } 
-
+  console.log("test 6");
   await wallet.save();
   await stake.save();
+  history.status = stake.status;
+  await history.save();
   res.status(200).json({ message: "Withdraw processed" });
 });
 
+router.get("/getHistory/:userId",authenticate,authorize("admin","user"),async(req,res)=>{
+   const { userId } = req.params;
+   const newUserId = new mongoose.Types.ObjectId(userId);
+   try {
+    const history = await History.aggregate([
+      {$match:{userId:newUserId}},
+      {$lookup:{
+        from:"wallets",
+        localField:"walletId",
+        foreignField:"_id",
+        as:"walletAddress"
+      }},{
+        $unwind:"$walletAddress"
+      },
+      {
+        $project:{
+          _id:0,
+          "walletAddress.address":1,
+          amount:1,
+          network:1,
+          duration:1,
+          apr:1,
+          stakeDate:1,
+          type:1,
+          status:1,
+          rewards:1,
+          update:1
+        }
+      }
+    ])
+    
+    res.status(200).json(history)
+   } catch (error) {
+    console.log(error);
+    res.status(500).json({message:"Internal server error"})
+   }
+})
 
-cron.schedule("*/1 * * * *", async () => {
+cron.schedule("*/10 * * * *", async () => {
   console.log("Running staking reward cron...");
 
   try {
@@ -744,14 +833,25 @@ cron.schedule("*/1 * * * *", async () => {
 
     for (const stake of activeStakes) {
       const stakeDate = new Date(stake.stakeDate);
+      console.log('stakeDate',stakeDate);
+      
       const now = new Date();
+      console.log('now',now);
+      
       const hoursPassed = (now - stakeDate) / (1000 * 60 * 60);
+      console.log("hoursPassed", hoursPassed);
       const daysPassed = Math.floor(hoursPassed / 24);
-
+        const stakeEnd =
+          new Date(stake.stakeDate).getTime() +
+          stake.duration * 24 * 60 * 60 * 1000;
+          console.log('stakeEnd',stakeEnd);
+        
+          const check = new Date(stake.stakeDate).getTime()
+          console.log('check',check);
+          
       const { amount, network, apr, type, duration ,status} = stake;
       const rate = cryptoRates[network];
 
-      const newCheck = now >= daysPassed
      
       if (!rate) {
         console.warn(`Rate not found for ${network}`);
@@ -761,19 +861,20 @@ cron.schedule("*/1 * * * *", async () => {
       const amountInUsd = amount * rate;
 
       const dailyRate = apr / rate / 365 / 100;
+      console.log('dailyRate',dailyRate);
 
       const dailyRewardInUsd = amountInUsd * dailyRate;
 
       const dailyRewardInCrypto = dailyRewardInUsd / rate;
-      
 
       if (type === "flexible") {
         if (hoursPassed <= 24 && status === "active") {
           stake.rewards = (stake.rewards || 0) + dailyRewardInCrypto;
-          stake.stakeDate = now;
           stake.update += 1
         }if(hoursPassed >= 24){
           stake.status = "completed"
+          console.log("hi venky");
+          
         }
       }
        if (type === "fixed") {
@@ -784,7 +885,6 @@ cron.schedule("*/1 * * * *", async () => {
         if (daysPassed >= duration) {
           stake.status = "completed";
         }
-
       }
 
       await stake.save();

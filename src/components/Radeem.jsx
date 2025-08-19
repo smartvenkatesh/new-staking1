@@ -55,14 +55,15 @@ const Radeem = () => {
   const withdrawAmount = async () => {
     try {
       const account = walletDetails.walletDetails.address;
-      await axios.post(
+      const res = await axios.post(
         `http://localhost:8080/staking/withdraw/radeem/${stakeId}`,
         { account },
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }
       );
-      toast.success("Withdrawal successful");
+      console.log("success",res.data);
+      toast.success(res.data.message)
       handleClose();
       setTimeout(() => navigate("/staking/home"), 2000);
     } catch (err) {

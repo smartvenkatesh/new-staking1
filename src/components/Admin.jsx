@@ -21,6 +21,11 @@ const Admin = () => {
   const [apr, setApr] = useState("")
   const [duration, setDuration] = useState("")
   const [type, setType] = useState("")
+  const [configs, setConfigs] = useState([]);
+  const [currency,setCurrency] = useState([])
+  const [show2,setShow2] = useState("")
+  const [editConfig, setEditConfig] = useState(null); // for editing
+  const [editApr, setEditApr] = useState(""); // hold new apr value
 
   const handleClose = () => {
     setShow(false);
@@ -37,6 +42,10 @@ const Admin = () => {
   }
   const handleShow = () => setShow(true);
   const handleShow1 = () => setShow1(true);
+  const handleShow2 = () =>{ 
+    setShow2(true)
+
+  }
 
   const getCurrency = () => {
     axios.get(`http://localhost:8080/staking/getCurrency`, {
@@ -48,18 +57,66 @@ const Admin = () => {
     });
   };
 
+   const fetchConfigs = async () => {
+     try {
+       const res = await axios.get("http://localhost:8080/staking/getConfigAdmin", {
+         headers: {
+           Authorization: `Bearer ${localStorage.getItem("token")}`,
+         },
+       });
+       setActiveTab("config")
+       console.log("from config",res.data);
+       
+       setConfigs(res.data);
+     } catch (err) {
+       console.error("Error fetching configs", err);
+     }
+   };
+
+   const fetchCurrency =async()=>{
+    try {
+      const res = await axios.get("http://localhost:8080/staking/getCurrency", {
+         headers: {
+           Authorization: `Bearer ${localStorage.getItem("token")}`,
+         },
+       });
+       setActiveTab("currency")
+       setCurrency(res.data)
+    } catch (err) {
+       console.error("Error fetching currency", err);
+    }
+   }
+
+   const handleUpdateConfig = async (configId, duration) => {
+     try {
+       const res = await axios.put(
+         `http://localhost:8080/staking/updateConfig/${configId}`,
+         { duration, apr: editApr },
+         {
+           headers: {
+             Authorization: `Bearer ${localStorage.getItem("token")}`,
+           },
+         }
+       );
+       toast.success("Config updated!");
+       setEditConfig(null);
+       fetchConfigs()
+     } catch (err) {
+       toast.error("Update failed");
+       console.error(err);
+     }
+   };
   const handleSave = async () => {
+    const symbol = currencySymbol.toUpperCase()
     try {
       const response = await axios.post(
-        "http://localhost:8080/staking/addCurrency", {
+        "http://localhost:8080/staking/addCurrency",{
+          currencyName,
+          currencySymbol:symbol
+        }, {
           headers:
             { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      },
-        {
-          currencyName,
-          currencySymbol,
-          usdValue,
-        }
+      }
       );
       toast.success(response.data.message);
       handleClose();
@@ -78,15 +135,15 @@ const Admin = () => {
         "http://localhost:8080/staking/createConfig",
         {
           network,
-          apr,
-          duration,
-          type
+          type,
+          plans:{duration,apr}
         }, {
           headers:
             { Authorization: `Bearer ${localStorage.getItem("token")}` }
       }
       );
       toast.success(response.data.message);
+      fetchConfigs();
       handleClose1();
     } catch (error) {
       if (error.response && error.response.data.message) {
@@ -160,40 +217,6 @@ const Admin = () => {
         <h1 onClick={adminHome}>
           Staking <span>Admin Panel</span>
         </h1>
-
-        {activeTab === "home" && (
-          <button className="btn btn-success" onClick={handleShow}>
-            Add Currency
-          </button>
-        )}
-
-        {activeTab === "home" && (
-          <button className="btn btn-warning" onClick={handleShow1}>
-            Config
-          </button>
-        )}
-
-        {activeTab === "home" && (
-          <button className="btn btn-success" onClick={getStakeDetails}>
-            Staking Details
-          </button>
-        )}
-        {activeTab === "stake" && (
-          <button className="btn btn-primary" onClick={adminHome}>
-            Back To Home
-          </button>
-        )}
-        {activeTab === "stake" && (
-          <select
-            id="admin-select"
-            value={select}
-            onChange={(e) => setSelect(e.target.value)}
-          >
-            <option value="">All Type</option>
-            <option value="fixed">Fixed</option>
-            <option value="flexible">Flexible</option>
-          </select>
-        )}
         <button className="logout-button" onClick={handleLogout}>
           Logout
         </button>
@@ -219,14 +242,6 @@ const Admin = () => {
             value={currencySymbol}
             onChange={(e) => setCurrencySymbol(e.target.value)}
           />
-
-          <label>Currency USD Value:</label>
-          <input
-            type="number"
-            className="form-control"
-            value={usdValue}
-            onChange={(e) => setUsdValue(e.target.value)}
-          />
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleClose}>
@@ -243,13 +258,21 @@ const Admin = () => {
           <Modal.Title>Enter New Currency Config</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <select className="w-100 text-center bg-light p-2 mb-2" value={type} onChange={(e) => setType(e.target.value)}>
+          <select
+            className="w-100 text-center bg-light p-2 mb-2"
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+          >
             <option value="">Stake Type</option>
             <option value="fixed">Fixed</option>
             <option value="flexible">Flexible</option>
           </select>
 
-          <select className="w-100 text-center bg-light p-2 mb-2" value={network} onChange={(e) => setNetwork(e.target.value)}>
+          <select
+            className="w-100 text-center bg-light p-2 mb-2"
+            value={network}
+            onChange={(e) => setNetwork(e.target.value)}
+          >
             <option value="">Currency Symbol</option>
             {dbNetwork.map((net, idx) => (
               <option key={idx} value={net.currencyName}>
@@ -259,13 +282,15 @@ const Admin = () => {
           </select>
 
           <label>Duration</label>
-          {type === "fixed" && (<input
-            type="text"
-            className="form-control mb-2"
-            placeholder="Duration"
-            value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-          />)}
+          {type === "fixed" && (
+            <input
+              type="text"
+              className="form-control mb-2"
+              placeholder="Duration"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+            />
+          )}
 
           <label>APR (%)</label>
           <input
@@ -284,111 +309,234 @@ const Admin = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+      <div className="admin-layout">
+        <aside className="admin-sidebar">
+          <button className="btn btn-light w-100 mb-2" onClick={handleShow}>
+            Add Currency
+          </button>
+          <button className="btn btn-secondary w-100 mb-2" onClick={handleShow1}>
+            Add Config
+          </button>
+          <button
+            className="btn btn-light w-100 mb-2"
+            onClick={getStakeDetails}
+          >
+            Staking Details
+          </button>
+          <button
+            className="btn btn-secondary w-100 mb-2"
+            onClick={fetchCurrency}
+          >
+            view Currency
+          </button>
+          <button className="btn btn-light w-100 mb-2" onClick={fetchConfigs}>
+            view Config
+          </button>
+          {activeTab === "stake" && (
+            <select
+              id="admin-select"
+              value={select}
+              onChange={(e) => setSelect(e.target.value)}
+              className="w-100 form-select mt-2"
+            >
+              <option value="">All Type</option>
+              <option value="fixed">Fixed</option>
+              <option value="flexible">Flexible</option>
+            </select>
+          )}
+          {activeTab === "stake" && (
+            <button className="btn btn-primary w-100 mt-2" onClick={adminHome}>
+              Back To Home
+            </button>
+          )}
+        </aside>
 
-      {activeTab === "home" && (
-        <div className="admin-table-wrapper">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>User Name</th>
-                <th>Network</th>
-                <th>Logo</th>
-                <th>Wallet Address</th>
-                <th>Balance</th>
-              </tr>
-            </thead>
-            <tbody>
-              {wallets.map((wallet, index) => (
-                <tr key={wallet._id}>
-                  <td>{index + 1}</td>
-                  <td>{wallet.admin.username || "N/A"}</td>
-                  <td>{wallet.currencyType}</td>
-                  <td>
-                    <img
-                      src={
-                        wallet.currencyType === "ETH"
-                          ? "https://assets.coingecko.com/coins/images/279/large/ethereum.png"
-                          : "https://assets.coingecko.com/coins/images/12559/large/coin-round-red.png"
-                      }
-                      alt={wallet.currencyType}
-                      width="30"
-                      height="30"
-                      style={{ objectFit: "contain" }}
-                    />
-                  </td>
-                  <td>{wallet.address}</td>
-                  <td>{wallet.amount}</td>
+        {activeTab === "currency" && (
+          <div className="round-head">
+            {currency.map((curr, index) => (
+              <div key={index} className="round">
+                <p>{curr.currencyName}</p>
+                <h2>{curr.currencySymbol}</h2>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {activeTab === "config" && (
+          <div className="admin-table-wrapper">
+            <h2>Configs</h2>
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Currency Symbol</th>
+                  <th>Type</th>
+                  <th>Duration</th>
+                  <th>APR</th>
+                  <th>Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {configs.map((c) =>
+                  c.plans.map((plan, idx) => (
+                    <tr key={idx}>
+                      <td>{c.currencySymbol}</td>
+                      <td>{c.type}</td>
+                      <td>{plan.duration || 0}</td>
+                      <td>
+                        {editConfig === plan.duration + "-" + c._id ? (
+                          <input
+                            type="number"
+                            value={editApr}
+                            onChange={(e) => setEditApr(e.target.value)}
+                            className="form-control"
+                          />
+                        ) : (
+                          plan.apr
+                        )}
+                      </td>
+                      <td>
+                        {editConfig === plan.duration + "-" + c._id ? (
+                          <>
+                            <button
+                              className="btn btn-success btn-sm"
+                              onClick={() =>
+                                handleUpdateConfig(c._id, plan.duration)
+                              }
+                            >
+                              Save
+                            </button>
+                            <button
+                              className="btn btn-secondary btn-sm ms-2"
+                              onClick={() => setEditConfig(null)}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            className="btn btn-warning btn-sm"
+                            onClick={() => {
+                              setEditConfig(plan.duration + "-" + c._id);
+                              setEditApr(plan.apr);
+                            }}
+                          >
+                            Edit
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-      {activeTab === "stake" && (
-        <div className="admin-table-wrapper">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>User Name</th>
-                <th>Network</th>
-                <th>Logo</th>
-                <th>Wallet Address</th>
-                <th>Stake Amount</th>
-                <th>Time & Date</th>
-                <th>Type</th>
-                <th>Balance</th>
-                <th>Rewards</th>
-                <th>Complete</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stakeDetails.map((stake, index) => {
-                return (
-                  <tr key={index}>
+        {activeTab === "home" && (
+          <div className="admin-table-wrapper">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>User Name</th>
+                  <th>Network</th>
+                  <th>Logo</th>
+                  <th>Wallet Address</th>
+                  <th>Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {wallets.map((wallet, index) => (
+                  <tr key={wallet._id}>
                     <td>{index + 1}</td>
-                    <td>{stake.user_details.username}</td>
-                    <td>{stake.network}</td>
+                    <td>{wallet.admin.username || "N/A"}</td>
+                    <td>{wallet.currencyType}</td>
                     <td>
-                      {" "}
                       <img
                         src={
-                          stake.network === "ETH"
+                          wallet.currencyType === "ETH"
                             ? "https://assets.coingecko.com/coins/images/279/large/ethereum.png"
                             : "https://assets.coingecko.com/coins/images/12559/large/coin-round-red.png"
                         }
-                        alt={stake.network}
+                        alt={wallet.currencyType}
                         width="30"
                         height="30"
                         style={{ objectFit: "contain" }}
                       />
                     </td>
-                    <td>{stake.wallet_details.address}</td>
-                    <td>{stake.amount}</td>
-                    <td>{new Date(stake.stakeDate).toLocaleString()}</td>
-                    <td>{stake.type}</td>
-                    <td>{stake.wallet_details.amount}</td>
-                    <td>{stake.rewards}</td>
-                    <td
-                      className={
-                        stake.status === "completed"
-                          ? "bg-success text-light"
-                          : stake.status === "cancelled"
+                    <td>{wallet.address}</td>
+                    <td>{wallet.amount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === "stake" && (
+          <div className="admin-table-wrapper">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>User Name</th>
+                  <th>Network</th>
+                  <th>Logo</th>
+                  <th>Wallet Address</th>
+                  <th>Stake Amount</th>
+                  <th>Time & Date</th>
+                  <th>Type</th>
+                  <th>Balance</th>
+                  <th>Rewards</th>
+                  <th>Complete</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stakeDetails.map((stake, index) => {
+                  return (
+                    <tr key={index}>
+                      <td>{index + 1}</td>
+                      <td>{stake.user_details.username}</td>
+                      <td>{stake.network}</td>
+                      <td>
+                        {" "}
+                        <img
+                          src={
+                            stake.network === "ETH"
+                              ? "https://assets.coingecko.com/coins/images/279/large/ethereum.png"
+                              : "https://assets.coingecko.com/coins/images/12559/large/coin-round-red.png"
+                          }
+                          alt={stake.network}
+                          width="30"
+                          height="30"
+                          style={{ objectFit: "contain" }}
+                        />
+                      </td>
+                      <td>{stake.wallet_details.address}</td>
+                      <td>{stake.amount}</td>
+                      <td>{new Date(stake.stakeDate).toLocaleString()}</td>
+                      <td>{stake.type}</td>
+                      <td>{stake.wallet_details.amount}</td>
+                      <td>{stake.rewards}</td>
+                      <td
+                        className={
+                          stake.status === "completed"
+                            ? "bg-success text-light"
+                            : stake.status === "cancelled"
                             ? "bg-danger text-light"
                             : "bg-warning"
-                      }
-                    >
-                      {stake.status}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                        }
+                      >
+                        {stake.status}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
       <ToastContainer />
     </div>
   );
