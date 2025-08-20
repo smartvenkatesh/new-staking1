@@ -177,6 +177,18 @@ const Admin = () => {
     }
   }, [select]);
 
+  const handleDelete = (id)=>{
+    axios
+      .delete(`http://localhost:8080/staking/deleteConfig/${id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      })
+
+      .then((res) => {
+        toast.success(res.data.message);
+        fetchConfigs()
+      });
+  }
+
 
   const getStakeDetails = () => {
     setActiveTab("stake");
@@ -314,7 +326,10 @@ const Admin = () => {
           <button className="btn btn-light w-100 mb-2" onClick={handleShow}>
             Add Currency
           </button>
-          <button className="btn btn-secondary w-100 mb-2" onClick={handleShow1}>
+          <button
+            className="btn btn-secondary w-100 mb-2"
+            onClick={handleShow1}
+          >
             Add Config
           </button>
           <button
@@ -383,7 +398,7 @@ const Admin = () => {
                       <td>{c.type}</td>
                       <td>{plan.duration || 0}</td>
                       <td>
-                        {editConfig === plan.duration + "-" + c._id ? (
+                        {editConfig === c._id ? (
                           <input
                             type="number"
                             value={editApr}
@@ -395,7 +410,7 @@ const Admin = () => {
                         )}
                       </td>
                       <td>
-                        {editConfig === plan.duration + "-" + c._id ? (
+                        {editConfig === c._id ? (
                           <>
                             <button
                               className="btn btn-success btn-sm"
@@ -413,15 +428,21 @@ const Admin = () => {
                             </button>
                           </>
                         ) : (
-                          <button
-                            className="btn btn-warning btn-sm"
-                            onClick={() => {
-                              setEditConfig(plan.duration + "-" + c._id);
-                              setEditApr(plan.apr);
-                            }}
-                          >
-                            Edit
-                          </button>
+                          <div className="p-1">
+                            <button
+                              className="btn btn-warning btn-sm"
+                              onClick={() => {
+                                setEditConfig(c._id);
+                                setEditApr(plan.apr);
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button className="btn btn-danger btn-sm ms-3"
+                            onClick={()=>handleDelete(c._id)}>
+                              Delete
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>

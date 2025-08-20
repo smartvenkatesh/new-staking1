@@ -201,8 +201,23 @@ router.post("/addCurrency", authenticate, authorize("admin"), async (req, res) =
 router.post("/createConfig",authenticate,authorize("admin"),
   async (req, res) => {
     const { network, type, plans } = req.body;
+    
     try {
       const currency = await Currency.findOne({ currencyName: network });
+      const exists = await Config.find({currencySymbol:currency.currencySymbol})
+      let result = exists.map((exit) => exit.type);
+      let final = result.includes("flexible");
+      console.log("final",final);
+      
+      if(exists.length >= 3 && type === "fixed"){
+        return res.status(400).json({message:"Only 3 plans allowed"})
+      }
+
+      if(final === true && type === "flexible"){
+        return res.status(400).json({message:`Already flexible type added in
+           ${currency.currencySymbol}`})
+      }
+      
       const config = new Config({
         currencySymbol:currency.currencySymbol,
         type,
@@ -243,15 +258,29 @@ router.put(
   }
 );
 
-router.get("/getCurrency", authenticate, authorize("admin"), async(req, res)=>{
+router.delete("/deleteConfig/:id", authenticate, authorize("admin"),
+async(req,res)=>{
+  const {id} = req.params
+  try {
+    const config = await Config.findByIdAndDelete({_id:id})
+    
+    res.json({message:"Config successfully deleted"})
+
+  } catch (error) {
+     console.error("Config delete error:", err);
+     res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.get("/getCurrency", authenticate, authorize("admin","user"), async(req, res)=>{
   const currency = await Currency.find({})
   res.status(200).json(currency)
 });
 
 router.get("/getConfig/:currencySymbol",authenticate,authorize("admin","user"),async(req,res)=>{
   const {currencySymbol} = req.params
-  const config = await Config.find({currencySymbol})
-  console.log('config',config);
+  const config = (await Config.find({currencySymbol}).sort({plans:1})).reverse()
+
   res.status(200).json(config)
 })
 
@@ -773,8 +802,7 @@ router.post("/withdraw/radeem/:stakeId", authenticate, authorize("admin", "user"
       stake.status = "cancelled";
       stake.amount = 0;
       stake.rewards = 0;
-    console.log("test 5");
-
+      console.log("test 5");
     }
   } 
   console.log("test 6");

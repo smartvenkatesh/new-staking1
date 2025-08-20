@@ -28,10 +28,16 @@ const Stake = () => {
       })
       .then((res) => {   
         setStakeConfig(res.data)
-        setApr(res.data[0].plans[0].apr);
-        console.log("customer",res.data);
-        console.log("test",res.data[0].plans[0].apr);
-      })
+        console.log(res.data);
+        
+        if(stakeType === "fixed"){
+          setApr(res.data[0].plans[0].apr);
+        }else if(stakeType === "flexible"){
+          setApr(res.data[res.data.length - 1].plans[0].apr);
+          console.log(res.data[res.data.length-1].plans[0].apr);
+          
+        }
+        })
       .catch((err) => {
         console.error("Error fetching config", err);
       });
@@ -51,12 +57,14 @@ const Stake = () => {
   useEffect(()=>{
     getConfig()
     
-  },[])
+  },[stakeType])
 
   const handleStakeSubmit = async () => {
-    console.log(stakeAmount)
-    console.log(duration)
-    if ((!stakeAmount && stakeType === "fixed") || (!duration && stakeType === "fixed")) {
+
+    if (
+      (!stakeAmount && stakeType === "fixed") ||
+      (!duration && stakeType === "fixed")
+    ) {
       toast.error("Please enter stake amount and duration");
       return;
     }
@@ -114,8 +122,8 @@ const Stake = () => {
         <p>
           <strong>APR</strong> : {apr}%
         </p>
-        {stakeType === "fixed" && (
-          <div>
+        
+          {stakeType === "fixed" &&(<div>
             <label>Duration (days):</label>
             <div className="customerStake">
               {stakeConfig
@@ -123,7 +131,8 @@ const Stake = () => {
                 .map((cfg) => (
                   <div key={cfg._id}>
                     <div>
-                      {cfg.plans.map((plan, idx) => (
+                      {cfg.plans.map((plan, idx) => {
+                        return (
                         <div>
                           <button
                             key={idx}
@@ -146,13 +155,13 @@ const Stake = () => {
                             {plan.duration}
                           </button>
                         </div>
-                      ))}
+                      )})}
                     </div>
                   </div>
                 ))}
             </div>
-          </div>
-        )}
+          </div>)}
+        
 
         <div>
           <label>Amount: </label>
