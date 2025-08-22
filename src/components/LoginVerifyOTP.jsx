@@ -97,7 +97,7 @@ const VerifyOTP = () => {
 
   const handleResend = () => {
     console.log('userId',userId);
-    
+    toast.success("check your email")
     axios.post("http://localhost:8080/staking/login/resendOtp", { userId });
     updateTimer(); // Restart timer on resend
   };

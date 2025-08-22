@@ -12,10 +12,14 @@ import Backdrop from "@mui/material/Backdrop";
 import CircularProgress from "@mui/material/CircularProgress";
 import { toast, ToastContainer } from "react-toastify";
 import { Button } from "react-bootstrap";
-import decodeToken from "../utils/decode"
+import decodeToken from "../utils/decode";
 import { jwtDecode } from "jwt-decode";
+// import dotenv from "dotenv";
+// dotenv.config();
 
+// const PORT = process.env.BACKEND_PORT;
 const PORT = "http://localhost:8080/staking";
+console.log(PORT);
 
 const Home = () => {
   const [userId, setUserId] = useState("");
@@ -31,7 +35,7 @@ const Home = () => {
   const [staking, setStaking] = useState([]);
   const [stakeHistory, setStakeHistory] = useState([]);
   const [activeTab, setActiveTab] = useState("home");
-  const [expired,setExpired] = useState("")
+  const [expired, setExpired] = useState("");
 
   const navigate = useNavigate();
 
@@ -42,8 +46,7 @@ const Home = () => {
 
     try {
       const res = await axios.get(`${PORT}/address/${userId}`, {
-        headers:
-          { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
       const wallets = res.data;
       console.log("wallets", wallets);
@@ -58,11 +61,11 @@ const Home = () => {
         let rate = 1;
         if (wallet.currencyType === "ETH") rate = ethRate;
         else if (wallet.currencyType === "AVAX") rate = avaxRate;
-        console.log("walletAmount",wallet.amount);
-        
+        console.log("walletAmount", wallet.amount);
+
         const virtualMoneyInCrypto = wallet.amount / rate;
-        console.log('virtualMoneyInCrypto',virtualMoneyInCrypto);
-        
+        console.log("virtualMoneyInCrypto", virtualMoneyInCrypto);
+
         return { ...wallet, virtualMoneyInCrypto };
       });
 
@@ -72,19 +75,19 @@ const Home = () => {
       console.error("Wallet fetch error", err);
     }
   };
-  
+
   useEffect(() => {
     const token = localStorage.getItem("token");
-    console.log('token', token);
+    console.log("token", token);
 
-    const decoder = decodeToken(token)
-    console.log('decoder', decoder);
-    console.log('current time',Date.now());
+    const decoder = decodeToken(token);
+    console.log("decoder", decoder);
+    console.log("current time", Date.now());
 
     if (decoder._id) {
       setUserId(decoder._id);
     }
-    setExpired(isTokenExpired(token))
+    setExpired(isTokenExpired(token));
     if (expired === true) {
       toast.warning("token is expired please login again");
     }
@@ -118,14 +121,11 @@ const Home = () => {
       };
       fetchExchangeRate();
     }
-    
-    
   }, [userId, toCurrency]);
 
   useEffect(() => {
     setConvertedAmount((amount * exchangeRate).toFixed(2));
   }, [amount, exchangeRate]);
-
 
   const goToDeposit = () => {
     navigate("/staking/deposit", { state: userId });
@@ -139,24 +139,23 @@ const Home = () => {
     setActiveTab("stake");
     axios
       .get(`http://localhost:8080/staking/customerStake/${userId}`, {
-        headers:
-          { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       })
       .then((res) => {
         setStaking(res.data);
         console.log("res.data", res.data);
-      }).catch((err)=>{
-        console.log("new problem");
-        toast.error("token is expired")
       })
+      .catch((err) => {
+        console.log("new problem");
+        toast.error("token is expired");
+      });
   };
 
   const handleStakeHistory = () => {
     setActiveTab("history");
     axios
       .get(`http://localhost:8080/staking/stakeHistory/${userId}`, {
-        headers:
-          { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       })
       .then((res) => {
         setStakeHistory(res.data);
@@ -187,7 +186,7 @@ const Home = () => {
             <Nav className="me-auto">
               <Nav.Link onClick={goToCreateAddress}>Create Account</Nav.Link>
               <Nav.Link onClick={goToDeposit}>Deposit</Nav.Link>
-              
+
               <NavDropdown
                 title={`Currency: ${toCurrency}`}
                 id="currency-nav-dropdown"
@@ -285,8 +284,8 @@ const Home = () => {
                 <td>
                   {wallet.virtualMoneyInCrypto
                     ? wallet.virtualMoneyInCrypto.toFixed(8) +
-                    " " +
-                    wallet.currencyType
+                      " " +
+                      wallet.currencyType
                     : "0" + " " + wallet.currencyType}
                 </td>
               </tr>
@@ -341,16 +340,23 @@ const Home = () => {
                       stake.status === "completed"
                         ? "bg-success text-light"
                         : stake.status === "cancelled"
-                          ? "bg-danger text-light"
-                          : "bg-warning"
+                        ? "bg-danger text-light"
+                        : "bg-warning"
                     }
                   >
                     {stake.status}
                   </td>
                   <td>{stake.rewards.toFixed(3)}</td>
-                  <td><Button
-                    onClick={() => navigate("/staking/radeem", { state: stake._id })}
-                    variant="success">Radeem</Button></td>
+                  <td>
+                    <Button
+                      onClick={() =>
+                        navigate("/staking/radeem", { state: stake._id })
+                      }
+                      variant="success"
+                    >
+                      Radeem
+                    </Button>
+                  </td>
                 </tr>
               );
             })}

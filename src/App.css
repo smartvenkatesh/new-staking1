@@ -61,19 +61,10 @@
 .admin-container {
   font-family: 'Segoe UI', sans-serif;
   padding: 20px;
-  background-color: #f4f6f9;
+  background-color: #2a2c2d;
   min-height: 100vh;
 }
 
-.admin-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #2f3e46;
-  color: white;
-  padding: 15px 25px;
-  border-radius: 8px;
-}
 .admin-header h1 span {
   font-size: 16px;
   font-weight: normal;
@@ -138,7 +129,8 @@
   background-color: #222;
   color: #fff;
   padding: 10px 20px;
-  border-radius: 5px;
+  border-radius: 10px;
+  border-end-start-radius: 0px;
 }
 
 .admin-header h1 span {
@@ -309,7 +301,7 @@
 
 .admin-sidebar {
   width: 220px;
-  background: #222;
+  background: rgb(41, 39, 39);
   color: white;
   min-height: calc(100vh - 60px);
   padding: 15px;

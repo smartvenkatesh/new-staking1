@@ -38,14 +38,17 @@ const Login = () => {
     e.preventDefault();
     const validationErrors = validate();
     setErrors(validationErrors);
-
+    
     if (Object.keys(validationErrors).length === 0) {
       try {
+        toast.success("check your email");
         const res = await axios.post("http://localhost:8080/staking/login", {
           form,
         });
+        
         const data = res.data
         console.log('data',data);
+        console.log("from login");
         
         navigate("/login/verify-otp", { state: { userId: data.user_id } });
             } catch (err) {
@@ -78,14 +81,14 @@ const Login = () => {
           onChange={handleChange}
         />
         {errors.password && <span style={styles.error}>{errors.password}</span>}
-        <button type="submit" style={styles.button}>
+        <button className="btn btn-primary" type="submit">
           Login
         </button>
         <div style={styles.anchor} className="text-center pt-3">
           <a onClick={() => navigate("/")}>Create a new account</a>
         </div>
-        <ToastContainer />
       </form>
+      <ToastContainer />
     </div>
   );
 };
